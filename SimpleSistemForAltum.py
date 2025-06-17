@@ -71,7 +71,7 @@ if uploaded_file:
 
         st.markdown(
             f"""
-            <div style='background-color: ##343a40; padding: 15px; border-radius: 10px; margin-bottom: 15px;'>
+            <div style='background-color: ##2c2c2c; padding: 15px; border-radius: 10px; margin-bottom: 15px;'>
                 <h4> Nº SC: {numero_sc}</h4>
                 <p><strong>Data SC:</strong> {data_sc.strftime('%d/%m/%Y') if pd.notnull(data_sc) else '—'}</p>
                 <p><strong>Tempo aberto:</strong> {tempo_aberto}</p>
