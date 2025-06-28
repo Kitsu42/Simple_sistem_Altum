@@ -1,0 +1,7 @@
+streamlit
+pandas
+openpyxl
+sqlalchemy
+pyyaml
+streamlit-authenticator
+reportlab
