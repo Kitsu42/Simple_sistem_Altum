@@ -4,9 +4,9 @@
 # Sistema de verificação de RC
 Funções esperadas:
 
-    [] - Ler as planilhas do backlog.
-    [] - Separar as requisições.
-    [] - Mostrar cada requisição como um card que deve apresentar n° de SC, quantidade de linhas, data de criação da SC e a quanto tempo está aberta.
+    [ ] - Ler as planilhas do backlog.
+    [ ] - Separar as requisições.
+    [ ] - Mostrar cada requisição como um card que deve apresentar n° de SC, quantidade de linhas, data de criação da SC e a quanto tempo está aberta.
     [ ] - Imprimir relatorios do estado de cada SC e guardar um historico.
     [ ] - Adicionar quem está cuidando de cada RC.
     [ ] - Adicionar sistema de login
