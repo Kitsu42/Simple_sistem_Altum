@@ -2,8 +2,12 @@
 import streamlit as st
 from login import autenticar_usuario
 from views import backlog, cotacao, finalizado
+from banco import criar_banco
 
 st.set_page_config(page_title="Sistema de Compras", layout="wide")
+
+# Criar banco e tabelas se ainda não existirem
+criar_banco()
 
 if 'autenticado' not in st.session_state:
     st.session_state['autenticado'] = False
@@ -20,4 +24,6 @@ else:
     elif menu == "Finalizado":
         finalizado.exibir()
 
-    st.sidebar.button("Sair", on_click=lambda: st.session_state.update({"autenticado": False}))
+    if st.sidebar.button("Sair"):
+        st.session_state.clear()
+        st.experimental_rerun()
