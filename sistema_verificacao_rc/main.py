@@ -12,9 +12,19 @@ criar_banco()
 if 'autenticado' not in st.session_state:
     st.session_state['autenticado'] = False
 
-if not st.session_state['autenticado']:
-    autenticar_usuario()
+if st.session_state.get("autenticado"):
+    menu = st.sidebar.selectbox("Navegar", ["Backlog", "Em Cotação", "Finalizado"])
+    if menu == "Backlog":
+        backlog.exibir()
+    elif menu == "Em Cotação":
+        cotacao.exibir()
+    elif menu == "Finalizado":
+        finalizado.exibir()
+    if st.sidebar.button("Sair"):
+        st.session_state.clear()
+        st.experimental_rerun()
 else:
+    autenticar_usuario()
     menu = st.sidebar.selectbox("Navegar", ["Backlog", "Em Cotação", "Finalizado"])
 
     if menu == "Backlog":
