@@ -2,8 +2,8 @@
 import streamlit as st
 
 USUARIOS = {
-    "admin": "admin123",
-    "user01": "user01"
+    "admin": {"senha": "admin123", "cargo": "admin"},
+    "user01": {"senha": "user01", "cargo": "comprador"},
 }
 
 def autenticar_usuario():
@@ -12,9 +12,9 @@ def autenticar_usuario():
     senha = st.text_input("Senha", type="password")
 
     if st.button("Entrar"):
-        if usuario in USUARIOS and USUARIOS[usuario] == senha:
+        if usuario in USUARIOS and USUARIOS[usuario]["senha"] == senha:
             st.session_state["autenticado"] = True
             st.session_state["usuario"] = usuario
-            # Remova o rerun aqui
+            st.session_state["cargo"] = USUARIOS[usuario]["cargo"]
         else:
             st.error("Usuário ou senha incorretos")
