@@ -56,5 +56,16 @@ def exibir():
                 rc.responsavel = st.session_state.get("usuario", "")
                 db.commit()
                 st.success("RC movida para cotação")
+            
+            numero_oc = st.text_input("Número da OC", key=f"oc_{rc.id}")
+
+            if st.button("Finalizar RC", key=f"finaliza_{rc.id}"):
+                if not numero_oc.strip():
+                    st.error("Você deve preencher o número da OC antes de finalizar a RC.")
+                else:
+                    rc.status = "finalizado"
+                    rc.numero_oc = numero_oc
+                    db.commit()
+                    st.success("RC finalizada com sucesso.")
 
     db.close()

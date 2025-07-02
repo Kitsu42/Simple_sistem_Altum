@@ -4,6 +4,7 @@
 # Sistema de verificação de RC
 Funções esperadas:
 
+    [ ] - adcionar tela de login separado.
     [X] - Ler as planilhas do backlog.
     [X] - Separar as requisições.
     [X] - Mostrar cada requisição como um card que deve apresentar n° de SC, quantidade de linhas, data de criação da SC e a quanto tempo está aberta.
@@ -15,6 +16,7 @@ Funções esperadas:
     [ ] - Gerar sistema de prazo para cotações e gerar oc
     [X] - Organizar por filial e empresa
     [ ] - Tornar obrigatorio declarar o N° de OC para concluir a RC
+    [ ] - Adcionar possibilidade de filtro que não atualize para todos ao mesmo tempo
     [ ] - Pagina de cotação deve conter
         [ ] - Lembrete de anexar NF
         [ ] - Lembrete de cobra fornecedor
