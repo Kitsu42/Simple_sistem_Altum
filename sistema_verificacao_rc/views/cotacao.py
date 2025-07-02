@@ -5,7 +5,7 @@ from models import Requisicao
 import pandas as pd
 
 def exibir():
-    st.title("Requisições em Cotação")
+    st.title("Minhas cotações")
     db = SessionLocal()
     usuario = st.session_state.get("usuario")
 
