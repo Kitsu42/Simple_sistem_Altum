@@ -12,7 +12,7 @@ if 'autenticado' not in st.session_state:
     st.session_state['autenticado'] = False
 
 if st.session_state.get("autenticado"):
-    menu = st.sidebar.selectbox("Navegar", ["Backlog", "Cotação", "Finalizado"])
+    menu = st.sidebar.selectbox("Navegar", ["Backlog", "Em Cotação", "Finalizado"])
     if menu == "Backlog":
         backlog.exibir()
     elif menu == "Em Cotação":
