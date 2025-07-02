@@ -1,3 +1,4 @@
+# views/backlog.py
 import streamlit as st
 from planilhas import carregar_backlog
 import pandas as pd
@@ -21,7 +22,8 @@ def exibir():
             agrupado = df.groupby(['Nº SC', 'Empresa', 'Filial']).agg({
                 'DATA SC': 'first',
                 'Dias em aberto': 'min',
-                'DESCRICAO': 'count'
+                'DESCRICAO': 'count',
+                'OBSERVAÇÃO': 'first'
             }).reset_index()
 
             for i, row in agrupado.iterrows():
@@ -35,7 +37,8 @@ def exibir():
                         data=row['DATA SC'],
                         empresa=row['Empresa'],
                         filial=row['Filial'],
-                        status="backlog"
+                        status="backlog",
+                        link=row.get("OBSERVAÇÃO", "")
                     )
                     db.add(rc)
             db.commit()
@@ -46,6 +49,8 @@ def exibir():
     for i, rc in enumerate(rcs):
         with st.expander(f"SC {rc.numero_sc} | {rc.empresa} - {rc.filial}"):
             st.write(f"Data de criação: {rc.data}")
+            if rc.link:
+                st.markdown(f"[📄 Documento da SC]({rc.link})", unsafe_allow_html=True)
             if st.button("Iniciar Cotação", key=f"cotar_{rc.id}"):
                 rc.status = "em cotação"
                 rc.responsavel = st.session_state.get("usuario", "")
