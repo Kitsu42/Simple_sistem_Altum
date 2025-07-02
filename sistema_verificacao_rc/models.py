@@ -1,6 +1,6 @@
 # models.py
 from sqlalchemy import Column, Integer, String, ForeignKey, Date
-from banco import Base
+from base import Base 
 
 class Requisicao(Base):
     __tablename__ = "requisicoes"
