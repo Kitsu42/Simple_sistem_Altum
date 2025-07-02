@@ -2,6 +2,19 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Date
 from sqlalchemy.orm import relationship
 from banco import Base
+from sqlalchemy import Column, Integer, String, Date
+
+class Requisicao(Base):
+    __tablename__ = "requisicoes"
+    id = Column(Integer, primary_key=True, index=True)
+    numero_sc = Column(String, index=True)
+    data = Column(Date)
+    empresa = Column(String)
+    filial = Column(String)
+    responsavel = Column(String, default="")
+    status = Column(String)
+    numero_oc = Column(String, default="")
+    link = Column(String, default="")  # ✅ ADICIONE ESTA LINHA
 
 class Usuario(Base):
     __tablename__ = "usuarios"
