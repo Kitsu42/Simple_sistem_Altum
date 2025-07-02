@@ -1,30 +1,21 @@
 # main.py
 import streamlit as st
-from login import autenticar_usuario
-from views import backlog, cotacao, finalizado
-from banco import criar_banco
+from views import acesso, backlog, cotacao, finalizado, analise, erros
 
 st.set_page_config(page_title="Sistema de Compras", layout="wide")
 
-criar_banco()
+if "autenticado" not in st.session_state:
+    st.session_state.autenticado = False
+if "usuario" not in st.session_state:
+    st.session_state.usuario = None
+if "cargo" not in st.session_state:
+    st.session_state.cargo = None
 
-if 'autenticado' not in st.session_state:
-    st.session_state['autenticado'] = False
-
-if st.session_state.get("autenticado"):
-    menu = st.sidebar.selectbox("Navegar", ["Backlog", "Em Cotação", "Finalizado"])
-    if menu == "Backlog":
-        backlog.exibir()
-    elif menu == "Em Cotação":
-        cotacao.exibir()
-    elif menu == "Finalizado":
-        finalizado.exibir()
-    if st.sidebar.button("Sair"):
-        st.session_state.clear()
-        st.experimental_rerun()
+# Página de login
+if not st.session_state.autenticado:
+    acesso.exibir()
 else:
-    autenticar_usuario()
-    menu = st.sidebar.selectbox("Navegar", ["Backlog", "Em Cotação", "Finalizado"])
+    menu = st.sidebar.radio("Menu", ("Backlog", "Em Cotação", "Finalizado", "Análise", "Erros"))
 
     if menu == "Backlog":
         backlog.exibir()
@@ -32,7 +23,7 @@ else:
         cotacao.exibir()
     elif menu == "Finalizado":
         finalizado.exibir()
-
-    if st.sidebar.button("Sair"):
-        st.session_state.clear()
-        st.experimental_rerun()
+    elif menu == "Análise":
+        analise.exibir()
+    elif menu == "Erros":
+        erros.exibir()
