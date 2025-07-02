@@ -16,9 +16,12 @@ def exibir():
         for rc in rcs:
             with st.expander(f"SC {rc.numero_sc} | {rc.empresa} - {rc.filial}"):
                 fornecedor = st.text_input("Fornecedor", key=f"fornecedor_{rc.id}")
-                nf = st.text_input("Nota Fiscal Recebida?", key=f"nf_{rc.id}")
-                cobranca = st.text_input("Cobranca ao fornecedor feita?", key=f"cob_{rc.id}")
-                envio = st.text_input("OC enviada ao fornecedor?", key=f"envio_{rc.id}")
+
+                cobrado = st.checkbox("Pedir Orçamento para o fornecedor", key=f"cob_{rc.id}")
+                cobradoNF = st.checkbox("Pedir nota fiscal", key=f"cob_{rc.id}")
+                nf_ok = st.checkbox("NF Recebida", key=f"nf_{rc.id}")
+                envio_ok = st.checkbox("OC enviada ao fornecedor", key=f"envio_{rc.id}")
+
                 numero_oc = st.text_input("Número da OC", key=f"oc_{rc.id}")
 
                 if st.button("Finalizar RC", key=f"finaliza_{rc.id}"):
