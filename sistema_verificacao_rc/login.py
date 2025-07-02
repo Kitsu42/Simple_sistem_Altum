@@ -4,6 +4,12 @@ import streamlit as st
 USUARIOS = {
     "admin": {"senha": "admin123", "cargo": "admin"},
     "user01": {"senha": "user01", "cargo": "comprador"},
+    "gilmar": {"senha": "gilmar262", "cargo": "comprador"},
+    "kamilla": {"senha": "senha", "cargo": "comprador"},
+    "valeria": {"senha": "senha", "cargo": "comprador"},
+    "kaio": {"senha": "senha", "cargo": "comprador"},
+    "alice": {"senha": "senha", "cargo": "comprador"},
+    "luiz": {"senha": "senha", "cargo": "comprador"},
 }
 
 def autenticar_usuario():
