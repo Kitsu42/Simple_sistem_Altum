@@ -8,6 +8,7 @@ sys.path.append(os.path.dirname(__file__))
 from auth import login
 from views import backlog, cotacao, finalizado, analise, erros
 from banco import criar_banco
+
 st.set_page_config(page_title="Sistema de Compras", layout="wide")
 
 criar_banco()
