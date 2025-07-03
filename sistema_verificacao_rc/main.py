@@ -5,6 +5,7 @@ import streamlit as st
 
 sys.path.append(os.path.dirname(__file__))
 
+from views import admin 
 from auth import login
 from views import backlog, cotacao, finalizado, analise, erros
 from banco import criar_banco
@@ -20,18 +21,20 @@ if "usuario" not in st.session_state:
 if "cargo" not in st.session_state:
     st.session_state.cargo = None
 
-if not st.session_state.autenticado:
-    login.exibir()
+if st.session_state.cargo == "admin":
+    menu = st.sidebar.radio("Menu", ("Backlog", "Em Cotação", "Finalizado", "Análise", "Erros", "Admin"))
 else:
     menu = st.sidebar.radio("Menu", ("Backlog", "Em Cotação", "Finalizado", "Análise", "Erros"))
 
-    if menu == "Backlog":
-        backlog.exibir()
-    elif menu == "Em Cotação":
-        cotacao.exibir()
-    elif menu == "Finalizado":
-        finalizado.exibir()
-    elif menu == "Análise":
-        analise.exibir()
-    elif menu == "Erros":
-        erros.exibir()
+if menu == "Backlog":
+    backlog.exibir()
+elif menu == "Em Cotação":
+    cotacao.exibir()
+elif menu == "Finalizado":
+    finalizado.exibir()
+elif menu == "Análise":
+    analise.exibir()
+elif menu == "Erros":
+    erros.exibir()
+elif menu == "Admin":
+    admin.exibir()
