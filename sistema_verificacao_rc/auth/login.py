@@ -32,6 +32,6 @@ def exibir():
             st.session_state.usuario = usuario.nome
             st.session_state.cargo = usuario.cargo
             st.success(f"Bem-vindo, {usuario.nome}. Redirecionando...")
-            st.experimental_rerun()
+            st.session_state.pagina = "Backlog")
         else:
             st.error("Usuário ou senha inválidos, ou usuário desativado.")
