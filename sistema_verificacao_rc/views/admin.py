@@ -54,7 +54,9 @@ def exibir():
         st.dataframe(em_cotacao)
 
         st.subheader("⏱️ RCs atrasadas por usuário")
+        df["data"] = pd.to_datetime(df["data"], errors="coerce")
         dias = (pd.to_datetime("today") - df["data"]).dt.days
+
         df["dias"] = dias
         atrasadas = df[(df["status"] == "em cotação") & (df["dias"] > 7)]  # Considera atraso > 7 dias
         atrasadas_por_user = atrasadas.groupby("usuario").size()
