@@ -123,4 +123,6 @@ def exibir():
                 st.success("Usuário cadastrado com sucesso.")
                 st.session_state["reload_admin"] = True
 
+        #criar uma opção de alterar a senha
+
     db.close()
