@@ -12,13 +12,15 @@ class Requisicao(Base):
     responsavel = Column(String, default="")
     status = Column(String)
     numero_oc = Column(String, default="")
-    link = Column(String, default="")  # <- este campo é essencial
+    link = Column(String, default="")
 
 class Usuario(Base):
     __tablename__ = "usuarios"
     id = Column(Integer, primary_key=True)
     nome = Column(String, unique=True)
     senha = Column(String)
+    cargo = Column(String)  # admin, comprador, etc.
+    ativo = Column(Integer, default=1)  # 1 = ativo, 0 = desativado
 
 class Item(Base):
     __tablename__ = "itens"
