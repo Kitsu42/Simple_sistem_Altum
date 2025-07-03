@@ -28,6 +28,5 @@ def exibir():
             st.session_state.cargo = USUARIOS[usuario]["cargo"]
             st.success("Login realizado com sucesso. Redirecionando...")
             time.sleep(1)
-            st.experimental_rerun()
         else:
             st.error("Usuário ou senha incorretos.")
