@@ -12,7 +12,7 @@ def exibir():
 
      # Filtros por empresa e filial (por usuário)
     st.subheader("🔍 Filtros")
-
+    #espero que isso resolva o filtro
     with st.form("filtros_form"):
         empresa_filtro = st.text_input("Empresa", value=st.session_state.get("empresa_filtro", ""))
         filial_filtro = st.text_input("Filial", value=st.session_state.get("filial_filtro", ""))
