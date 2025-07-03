@@ -8,6 +8,10 @@ from datetime import datetime, timedelta
 
 
 def exibir():
+    if st.session_state.get("reload_admin"):
+        st.session_state["reload_admin"] = False
+        st.experimental_rerun()
+
     if st.session_state.get("cargo") != "admin":
         st.error("Acesso restrito.")
         return
@@ -86,7 +90,7 @@ def exibir():
                 db.add(novo)
                 db.commit()
                 st.success("Usuário cadastrado com sucesso.")
-                st.experimental_rerun()
+                st.session_state["reload_admin"] = True
 
     usuarios = db.query(Usuario).all()
     for u in usuarios:
@@ -103,16 +107,20 @@ def exibir():
                 if st.button("Desativar", key=f"desativar_{u.id}"):
                     u.ativo = 0
                     db.commit()
-                    st.experimental_rerun()
+                    st.success("Usuário desativado com sucesso.")
+                    st.session_state["reload_admin"] = True
+
             else:
                 if st.button("Ativar", key=f"ativar_{u.id}"):
                     u.ativo = 1
                     db.commit()
-                    st.experimental_rerun()
+                    st.success("Usuário ativado com sucesso.")
+                    st.session_state["reload_admin"] = True
         with col5:
             if st.button("Excluir", key=f"excluir_{u.id}"):
                 db.delete(u)
                 db.commit()
-                st.experimental_rerun()
+                st.success("Usuário cadastrado com sucesso.")
+                st.session_state["reload_admin"] = True
 
     db.close()
