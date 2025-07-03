@@ -2,11 +2,11 @@
 import streamlit as st
 from auth import login
 from views import backlog, cotacao, finalizado, analise, erros
-
 from banco import criar_banco
-criar_banco() #criar um banco de dados caso não exista
 
 st.set_page_config(page_title="Sistema de Compras", layout="wide")
+
+criar_banco()
 
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
