@@ -1,3 +1,4 @@
+# login.py
 import streamlit as st
 import time
 
@@ -18,9 +19,9 @@ def exibir():
     with st.form("form_login"):
         usuario = st.text_input("Usuário")
         senha = st.text_input("Senha", type="password")
-        login = st.form_submit_button("Entrar")
+        botao_login = st.form_submit_button("Entrar")
 
-    if login:
+    if botao_login:  # <- aqui também
         if usuario in USUARIOS and USUARIOS[usuario]["senha"] == senha:
             st.session_state.autenticado = True
             st.session_state.usuario = usuario

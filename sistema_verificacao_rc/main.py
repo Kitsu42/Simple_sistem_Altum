@@ -1,6 +1,6 @@
 # main.py
 import streamlit as st
-from auth import login  # atualizado
+from auth import login
 from views import backlog, cotacao, finalizado, analise, erros
 
 st.set_page_config(page_title="Sistema de Compras", layout="wide")
