@@ -3,7 +3,7 @@ import sys
 import os
 import streamlit as st
 
-sys.path.append os.path.dirname(__file__)
+sys.path.append(os.path.dirname(__file__))
 
 from auth import login
 from views import backlog, cotacao, finalizado, analise, erros
