@@ -12,22 +12,23 @@ def exibir():
 
      # Filtros por empresa e filial (por usuário)
     st.subheader("🔍 Filtros")
-    #espero que isso resolva o filtro
-    with st.form("filtros_form"):
-        empresa_filtro = st.text_input("Empresa", value=st.session_state.get("empresa_filtro", ""))
-        filial_filtro = st.text_input("Filial", value=st.session_state.get("filial_filtro", ""))
-        
-        acao_filtro = st.radio("Ação", ["Aplicar", "Limpar"], horizontal=True)
-        aplicar = st.form_submit_button("Confirmar")
+    #Isso não está funcionando mas já já funciona
+    with st.expander("🔍 Filtros", expanded=False):
+        with st.form("filtros_form"):
+            empresa_filtro = st.text_input("Empresa", value=st.session_state.get("empresa_filtro", ""))
+            filial_filtro = st.text_input("Filial", value=st.session_state.get("filial_filtro", ""))
 
-    if aplicar:
-        if acao_filtro == "Aplicar":
-            st.session_state["empresa_filtro"] = empresa_filtro
-            st.session_state["filial_filtro"] = filial_filtro
-        elif acao_filtro == "Limpar":
-            st.session_state["empresa_filtro"] = ""
-            st.session_state["filial_filtro"] = ""
-        st.experimental_rerun()
+            acao_filtro = st.radio("Ação", ["Aplicar", "Limpar"], horizontal=True)
+            aplicar = st.form_submit_button("Confirmar")
+
+        if aplicar:
+            if acao_filtro == "Aplicar":
+                st.session_state["empresa_filtro"] = empresa_filtro
+                st.session_state["filial_filtro"] = filial_filtro
+            else:
+                st.session_state["empresa_filtro"] = ""
+                st.session_state["filial_filtro"] = ""
+            st.experimental_rerun()
 
     if st.session_state.get("cargo") == "admin":
         arquivo = st.file_uploader("Enviar planilha de backlog", type="xlsx")
