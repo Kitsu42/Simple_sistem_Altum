@@ -1,0 +1,1 @@
+#reports/gerar_pdf.py -> vazio

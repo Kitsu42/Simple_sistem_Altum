@@ -96,4 +96,14 @@ def exibir():
                     db.commit()
                     st.success("RC finalizada com sucesso.")
 
+    #alerta de rc muito tempo em aberto                
+    dias_em_aberto = (pd.to_datetime("today") - pd.to_datetime(rc.data)).days
+
+    if dias_em_aberto >= 10:
+        st.error(f"⏰ Atenção: {dias_em_aberto} dias em aberto")
+    elif dias_em_aberto >= 5:
+        st.warning(f"⏳ Em aberto há {dias_em_aberto} dias")
+    else:
+        st.info(f"📅 Em aberto há {dias_em_aberto} dias")
+
     db.close()
