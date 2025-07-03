@@ -53,6 +53,11 @@ def exibir():
         em_cotacao = df[df.status == "em cotação"].groupby("usuario").size()
         st.dataframe(em_cotacao)
 
+        st.subheader("✅ RCs finalizadas por usuário")
+        finalizadas = df[df["status"] == "finalizado"].groupby("usuario").size()
+        st.dataframe(finalizadas)
+
+
         st.subheader("⏱️ RCs atrasadas por usuário")
         df["data"] = pd.to_datetime(df["data"], errors="coerce")
         dias = (pd.to_datetime("today") - df["data"]).dt.days
