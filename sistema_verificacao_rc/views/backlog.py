@@ -1,4 +1,3 @@
-# views/backlog.py
 import streamlit as st
 from planilhas import carregar_backlog
 import pandas as pd
@@ -10,8 +9,7 @@ def exibir():
     st.title("Backlog de SCs")
     db = SessionLocal()
 
-     # Filtros por empresa e filial (por usuário)
-    #Isso não está funcionando mas já já funciona
+    # Filtros por empresa e filial (por usuário)
     with st.expander("🔍 Filtros", expanded=False):
         with st.form("filtros_form"):
             empresa_filtro = st.text_input("Empresa", value=st.session_state.get("empresa_filtro", ""))
@@ -73,10 +71,19 @@ def exibir():
 
     rcs = query.all()
 
-
     for i, rc in enumerate(rcs):
+        dias_em_aberto = (pd.to_datetime("today") - pd.to_datetime(rc.data)).days
+
         with st.expander(f"SC {rc.numero_sc} | {rc.empresa} - {rc.filial}"):
             st.write(f"Data de criação: {rc.data}")
+
+            if dias_em_aberto >= 10:
+                st.error(f"⏰ Atenção: {dias_em_aberto} dias em aberto")
+            elif dias_em_aberto >= 5:
+                st.warning(f"⏳ Em aberto há {dias_em_aberto} dias")
+            else:
+                st.info(f"📅 Em aberto há {dias_em_aberto} dias")
+
             if rc.link:
                 st.markdown(f"[📄 Documento da SC]({rc.link})", unsafe_allow_html=True)
             if st.button("Iniciar Cotação", key=f"cotar_{rc.id}"):
@@ -84,7 +91,7 @@ def exibir():
                 rc.responsavel = st.session_state.get("usuario", "")
                 db.commit()
                 st.success("RC movida para cotação")
-            
+
             numero_oc = st.text_input("Número da OC", key=f"oc_{rc.id}")
 
             if st.button("Finalizar RC", key=f"finaliza_{rc.id}"):
@@ -95,15 +102,5 @@ def exibir():
                     rc.numero_oc = numero_oc
                     db.commit()
                     st.success("RC finalizada com sucesso.")
-
-    #alerta de rc muito tempo em aberto                
-    dias_em_aberto = (pd.to_datetime("today") - pd.to_datetime(rc.data)).days
-
-    if dias_em_aberto >= 10:
-        st.error(f"⏰ Atenção: {dias_em_aberto} dias em aberto")
-    elif dias_em_aberto >= 5:
-        st.warning(f"⏳ Em aberto há {dias_em_aberto} dias")
-    else:
-        st.info(f"📅 Em aberto há {dias_em_aberto} dias")
 
     db.close()
