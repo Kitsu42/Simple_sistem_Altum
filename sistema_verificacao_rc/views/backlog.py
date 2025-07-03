@@ -13,17 +13,20 @@ def exibir():
      # Filtros por empresa e filial (por usuário)
     st.subheader("🔍 Filtros")
 
-    empresa_filtro = st.text_input("Empresa", value=st.session_state.get("empresa_filtro", ""))
-    filial_filtro = st.text_input("Filial", value=st.session_state.get("filial_filtro", ""))
+    with st.form("filtros_form"):
+        empresa_filtro = st.text_input("Empresa", value=st.session_state.get("empresa_filtro", ""))
+        filial_filtro = st.text_input("Filial", value=st.session_state.get("filial_filtro", ""))
+        
+        acao_filtro = st.radio("Ação", ["Aplicar", "Limpar"], horizontal=True)
+        aplicar = st.form_submit_button("Confirmar")
 
-    if st.button("Aplicar Filtros"):
-        st.session_state["empresa_filtro"] = empresa_filtro
-        st.session_state["filial_filtro"] = filial_filtro
-        st.experimental_rerun()
-
-    if st.button("Limpar Filtros"):
-        st.session_state["empresa_filtro"] = ""
-        st.session_state["filial_filtro"] = ""
+    if aplicar:
+        if acao_filtro == "Aplicar":
+            st.session_state["empresa_filtro"] = empresa_filtro
+            st.session_state["filial_filtro"] = filial_filtro
+        elif acao_filtro == "Limpar":
+            st.session_state["empresa_filtro"] = ""
+            st.session_state["filial_filtro"] = ""
         st.experimental_rerun()
 
     if st.session_state.get("cargo") == "admin":
