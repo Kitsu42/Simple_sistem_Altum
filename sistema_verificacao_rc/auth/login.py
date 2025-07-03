@@ -1,33 +1,37 @@
 # login.py
 import streamlit as st
-import time
-
-USUARIOS = {
-    "admin": {"senha": "admin123", "cargo": "admin"},
-    "user01": {"senha": "user01", "cargo": "comprador"},
-    "gilmar": {"senha": "gilmar262", "cargo": "comprador"},
-    "kamilla": {"senha": "senha", "cargo": "comprador"},
-    "valeria": {"senha": "senha", "cargo": "comprador"},
-    "kaio": {"senha": "senha", "cargo": "comprador"},
-    "alice": {"senha": "senha", "cargo": "comprador"},
-    "luiz": {"senha": "senha", "cargo": "comprador"},
-}
+from banco import SessionLocal
+from models import Usuario
 
 def exibir():
+    st.set_page_config(page_title="Login", layout="centered")
     st.title("🔐 Login ")
 
     with st.form("form_login"):
-        usuario = st.text_input("Usuário")
-        senha = st.text_input("Senha", type="password")
-        botao_login = st.form_submit_button("Entrar")  # <- aqui trocamos o nome
+        usuario_input = st.text_input("Usuário")
+        senha_input = st.text_input("Senha", type="password")
+        login = st.form_submit_button("Entrar")
 
-    if botao_login:  # <- aqui também
-        if usuario in USUARIOS and USUARIOS[usuario]["senha"] == senha:
+    if login:
+        if not usuario_input or not senha_input:
+            st.warning("Preencha todos os campos.")
+            return
+
+        db = SessionLocal()
+        try:
+            usuario = (
+                db.query(Usuario)
+                .filter_by(nome=usuario_input, senha=senha_input, ativo=True)
+                .first()
+            )
+        finally:
+            db.close()
+
+        if usuario:
             st.session_state.autenticado = True
-            st.session_state.usuario = usuario
-            st.session_state.cargo = USUARIOS[usuario]["cargo"]
-            st.success("Login realizado com sucesso. Redirecionando...")
-            time.sleep(1)
-            st.session_state.pagina = "Backlog")
+            st.session_state.usuario = usuario.nome
+            st.session_state.cargo = usuario.cargo
+            st.success(f"Bem-vindo, {usuario.nome}. Redirecionando...")
+        st.session_state.pagina = "Backlog"
         else:
-            st.error("Usuário ou senha incorretos.")
+            st.error("Usuário ou senha inválidos, ou usuário desativado.")
