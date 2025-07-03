@@ -1,5 +1,6 @@
-# views/acesso.py
+# auth/login.py
 import streamlit as st
+import time
 
 USUARIOS = {
     "admin": {"senha": "admin123", "cargo": "admin"},
@@ -26,7 +27,10 @@ def exibir():
             st.session_state.autenticado = True
             st.session_state.usuario = usuario
             st.session_state.cargo = USUARIOS[usuario]["cargo"]
-            st.success("Login realizado com sucesso.")
+            st.success("Login realizado com sucesso. Redirecionando...")
+
+            # Pausa para que o usuário veja a mensagem antes de redirecionar
+            time.sleep(1)
             st.experimental_rerun()
         else:
             st.error("Usuário ou senha incorretos.")
