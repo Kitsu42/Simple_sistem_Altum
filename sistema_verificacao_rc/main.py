@@ -13,7 +13,7 @@ if "cargo" not in st.session_state:
     st.session_state.cargo = None
 
 if not st.session_state.autenticado:
-    
+    login.exibir()
 else:
     menu = st.sidebar.radio("Menu", ("Backlog", "Em Cotação", "Finalizado", "Análise", "Erros"))
 

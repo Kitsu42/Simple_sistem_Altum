@@ -31,5 +31,6 @@ def exibir():
 
             # Pausa para que o usuário veja a mensagem antes de redirecionar
             time.sleep(1)
+            st.experimental_rerun()
         else:
             st.error("Usuário ou senha incorretos.")
