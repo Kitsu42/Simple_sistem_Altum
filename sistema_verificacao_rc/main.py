@@ -1,6 +1,7 @@
 # main.py
 import streamlit as st
-from views import acesso, backlog, cotacao, finalizado, analise, erros
+from auth import login  # atualizado
+from views import backlog, cotacao, finalizado, analise, erros
 
 st.set_page_config(page_title="Sistema de Compras", layout="wide")
 
@@ -11,9 +12,8 @@ if "usuario" not in st.session_state:
 if "cargo" not in st.session_state:
     st.session_state.cargo = None
 
-# Página de login
 if not st.session_state.autenticado:
-    acesso.exibir()
+    login.exibir()
 else:
     menu = st.sidebar.radio("Menu", ("Backlog", "Em Cotação", "Finalizado", "Análise", "Erros"))
 

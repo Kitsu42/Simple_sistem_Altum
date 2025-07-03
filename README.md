@@ -30,3 +30,36 @@ Futuras funções:
     [ ] - Aba de RCs em cotação.
     [ ] - Exibir o estado em que a RC está no painel.
     [ ] - Puchar o backlog direto do Senior
+
+Extrutura:
+
+        sistema_verificacao_rc/
+    │
+    ├── main.py                      # Entrada principal (controla rotas e sessão)
+    ├── banco.py                     # Configuração do SQLAlchemy
+    ├── base.py                      # Declarative Base do SQLAlchemy
+    ├── models.py                    # Modelos de dados (ORM)
+    ├── planilhas.py                 # Manipulação e leitura de planilhas Excel
+    ├── utils.py                     # Funções auxiliares (ex: datas, conversões)
+    ├── requirements.txt             # Dependências do projeto
+    ├── README.md                    # Documentação básica
+    │
+    ├── auth/                        
+    │   └── login.py                 # Lógica de autenticação e hash/token
+    │
+    ├── data/
+    │   └── uploads/                 # Planilhas ou arquivos XML enviados
+    │
+    ├── reports/
+    │   ├── gerar_pdf.py             # Função de gerar relatórios em PDF
+    │   ├── gerar_xml.py             # Função de gerar relatórios em XML
+    │
+    └── views/
+        ├── __init__.py              # Necessário para importar como pacote
+        ├── acesso.py                # Página de login (exibe formulário de login)
+        ├── backlog.py               # RCs recebidas (Backlog)
+        ├── cotacao.py               # RCs em cotação
+        ├── finalizado.py            # RCs finalizadas
+        ├── analise.py               # OCs aguardando aprovação
+        ├── erros.py                 # OCs com erro (XML externo)
+        └── admin.py                 # Página exclusiva de administração
