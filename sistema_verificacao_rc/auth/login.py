@@ -14,7 +14,6 @@ USUARIOS = {
 }
 
 def exibir():
-    st.set_page_config(page_title="Login", layout="centered")
     st.title("🔐 Login - Sistema de Compras")
 
     with st.form("form_login"):
