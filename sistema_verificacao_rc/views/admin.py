@@ -1,18 +1,69 @@
 # views/admin.py
 import streamlit as st
+import pandas as pd
 from banco import SessionLocal
-from models import Usuario
+from models import Usuario, Requisicao
+from sqlalchemy import func
+from datetime import datetime, timedelta
+
 
 def exibir():
     if st.session_state.get("cargo") != "admin":
         st.error("Acesso restrito.")
         return
 
-    st.title("👥 Administração de Usuários")
+    st.title("👥 Administração do Sistema")
     db = SessionLocal()
 
+    st.header("📊 Relatórios e Produtividade")
+
+    # Filtro de datas para relatório
+    col1, col2 = st.columns(2)
+    with col1:
+        data_inicio = st.date_input("Data inicial", datetime.today() - timedelta(days=30))
+    with col2:
+        data_fim = st.date_input("Data final", datetime.today())
+
+    # Consulta dados no intervalo
+    requisicoes = db.query(Requisicao).filter(Requisicao.data >= data_inicio, Requisicao.data <= data_fim).all()
+    df = pd.DataFrame([{
+        "usuario": r.responsavel,
+        "data": r.data,
+        "status": r.status,
+        "empresa": r.empresa,
+        "filial": r.filial
+    } for r in requisicoes if r.responsavel])
+
+    if df.empty:
+        st.info("Nenhuma requisição registrada no período.")
+    else:
+        st.subheader("📈 RCs por usuário e status")
+        prod = df.groupby(["usuario", "status"]).size().unstack(fill_value=0)
+        st.dataframe(prod)
+
+        st.subheader("📅 RCs criadas por dia")
+        por_data = df.groupby("data").size()
+        st.line_chart(por_data)
+
+        st.subheader("🧾 Total de RCs por usuário no período")
+        total = df.groupby("usuario").size().sort_values(ascending=False)
+        st.bar_chart(total)
+
+        st.subheader("📍 RCs em cotação por usuário")
+        em_cotacao = df[df.status == "em cotação"].groupby("usuario").size()
+        st.dataframe(em_cotacao)
+
+        st.subheader("⏱️ RCs atrasadas por usuário")
+        dias = (pd.to_datetime("today") - df["data"]).dt.days
+        df["dias"] = dias
+        atrasadas = df[(df["status"] == "em cotação") & (df["dias"] > 7)]  # Considera atraso > 7 dias
+        atrasadas_por_user = atrasadas.groupby("usuario").size()
+        st.dataframe(atrasadas_por_user)
+
+    st.markdown("---")
+    st.header("👤 Gerenciamento de Usuários")
+
     # --- Formulário de cadastro ---
-    st.subheader("➕ Cadastrar novo usuário")
     with st.form("form_novo_usuario"):
         nome = st.text_input("Nome de usuário")
         senha = st.text_input("Senha")
@@ -30,10 +81,7 @@ def exibir():
                 st.success("Usuário cadastrado com sucesso.")
                 st.experimental_rerun()
 
-    # --- Listagem e controle de usuários ---
-    st.subheader("👤 Usuários cadastrados")
     usuarios = db.query(Usuario).all()
-
     for u in usuarios:
         col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 2])
         with col1:
