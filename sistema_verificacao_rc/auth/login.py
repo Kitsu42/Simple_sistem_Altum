@@ -19,7 +19,7 @@ def exibir():
     with st.form("form_login"):
         usuario = st.text_input("Usuário")
         senha = st.text_input("Senha", type="password")
-        botao_login = st.form_submit_button("Entrar")  # <- aqui trocamos o nome
+        botao_login = st.form_submit_button("Entrar")
 
     if botao_login:  # <- aqui também
         if usuario in USUARIOS and USUARIOS[usuario]["senha"] == senha:
