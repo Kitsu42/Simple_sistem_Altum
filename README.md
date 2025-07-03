@@ -31,7 +31,7 @@ Futuras funções:
     [ ] - Exibir o estado em que a RC está no painel.
     [ ] - Puchar o backlog direto do Senior
 
-Extrutura:
+Estrutura:
 
         sistema_verificacao_rc/
     │
