@@ -10,6 +10,22 @@ def exibir():
     st.title("Backlog de SCs")
     db = SessionLocal()
 
+     # Filtros por empresa e filial (por usuário)
+    st.subheader("🔍 Filtros")
+
+    empresa_filtro = st.text_input("Empresa", value=st.session_state.get("empresa_filtro", ""))
+    filial_filtro = st.text_input("Filial", value=st.session_state.get("filial_filtro", ""))
+
+    if st.button("Aplicar Filtros"):
+        st.session_state["empresa_filtro"] = empresa_filtro
+        st.session_state["filial_filtro"] = filial_filtro
+        st.experimental_rerun()
+
+    if st.button("Limpar Filtros"):
+        st.session_state["empresa_filtro"] = ""
+        st.session_state["filial_filtro"] = ""
+        st.experimental_rerun()
+
     if st.session_state.get("cargo") == "admin":
         arquivo = st.file_uploader("Enviar planilha de backlog", type="xlsx")
         if arquivo:
@@ -44,7 +60,16 @@ def exibir():
             db.commit()
             st.success("Planilha importada com sucesso.")
 
-    rcs = db.query(Requisicao).filter_by(status="backlog").all()
+    query = db.query(Requisicao).filter_by(status="backlog")
+
+    # Aplica os filtros do usuário se estiverem definidos
+    if st.session_state.get("empresa_filtro"):
+        query = query.filter(Requisicao.empresa.ilike(f"%{st.session_state['empresa_filtro']}%"))
+    if st.session_state.get("filial_filtro"):
+        query = query.filter(Requisicao.filial.ilike(f"%{st.session_state['filial_filtro']}%"))
+
+    rcs = query.all()
+
 
     for i, rc in enumerate(rcs):
         with st.expander(f"SC {rc.numero_sc} | {rc.empresa} - {rc.filial}"):
