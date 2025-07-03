@@ -11,7 +11,6 @@ def exibir():
     db = SessionLocal()
 
      # Filtros por empresa e filial (por usuário)
-    st.subheader("🔍 Filtros")
     #Isso não está funcionando mas já já funciona
     with st.expander("🔍 Filtros", expanded=False):
         with st.form("filtros_form"):
