@@ -32,8 +32,7 @@ else:
     else:
         menu = st.sidebar.radio("Menu", ("Backlog", "Em Cotação", "Finalizado", "Análise", "Erros"))
 
-    # Direciona para a view correta
-    if menu == "Backlog":
+     if menu == "Backlog":
         backlog.exibir()
     elif menu == "Em Cotação":
         cotacao.exibir()
@@ -45,3 +44,11 @@ else:
         erros.exibir()
     elif menu == "Admin":
         admin.exibir()
+
+    # --- Botão de logout na barra lateral ---
+    st.sidebar.markdown("---")
+    if st.sidebar.button("🚪 Sair"):
+        st.session_state.autenticado = False
+        st.session_state.usuario = None
+        st.session_state.cargo = None
+        st.experimental_rerun()
