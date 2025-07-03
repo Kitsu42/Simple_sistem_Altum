@@ -1,4 +1,3 @@
-# auth/login.py
 import streamlit as st
 import time
 
@@ -27,8 +26,6 @@ def exibir():
             st.session_state.usuario = usuario
             st.session_state.cargo = USUARIOS[usuario]["cargo"]
             st.success("Login realizado com sucesso. Redirecionando...")
-
-            # Pausa para que o usuário veja a mensagem antes de redirecionar
             time.sleep(1)
             st.experimental_rerun()
         else:
