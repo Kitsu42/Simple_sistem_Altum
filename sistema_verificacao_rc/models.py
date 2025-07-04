@@ -1,5 +1,5 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Date, Text
+from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
