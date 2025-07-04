@@ -52,4 +52,4 @@ else:
         st.session_state.autenticado = False
         st.session_state.usuario = None
         st.session_state.cargo = None
-        st.experimental_rerun()
+        st.session_state.pagina = "Backlog"
