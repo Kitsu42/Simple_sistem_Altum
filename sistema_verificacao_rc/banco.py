@@ -9,6 +9,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def criar_banco():
     Base.metadata.create_all(bind=engine)
+    popular_usuarios_iniciais()
 
 def popular_usuarios_iniciais():
     session = SessionLocal()
