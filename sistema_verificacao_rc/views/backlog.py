@@ -36,11 +36,10 @@ def exibir():
                 df['Dias em aberto'] = pd.to_datetime("today") - pd.to_datetime(df['DATA SC'], errors='coerce')
                 df['Dias em aberto'] = df['Dias em aberto'].dt.days
 
-            agrupado = df.groupby(['Nº SC', 'Empresa', 'Filial']).agg({
-                'DATA SC': 'first',
+            agrupado = df.groupby(['RC', 'Solicitacao Senior', 'Empresa', 'Filial']).agg({
+                'Data Cadastro': 'first',
                 'Dias em aberto': 'min',
-                'DESCRICAO': 'count',
-                'OBSERVAÇÃO': 'first'
+                'Link': 'first'
             }).reset_index()
 
             for i, row in agrupado.iterrows():
