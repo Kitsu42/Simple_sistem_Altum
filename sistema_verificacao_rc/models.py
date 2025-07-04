@@ -5,6 +5,7 @@ from base import Base
 class Requisicao(Base):
     __tablename__ = "requisicoes"
     id = Column(Integer, primary_key=True, index=True)
+    numero_rc = Column(String, index=True)
     numero_sc = Column(String, index=True)
     data = Column(Date)
     empresa = Column(String)
