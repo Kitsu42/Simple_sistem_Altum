@@ -32,7 +32,8 @@ else:
     else:
         menu = st.sidebar.radio("Menu", ("Backlog", "Em Cotação", "Finalizado", "Análise", "Erros"))
 
-     if menu == "Backlog":
+    # Correção: sem espaços a mais aqui
+    if menu == "Backlog":
         backlog.exibir()
     elif menu == "Em Cotação":
         cotacao.exibir()
@@ -45,7 +46,7 @@ else:
     elif menu == "Admin":
         admin.exibir()
 
-    # --- Botão de logout na barra lateral ---
+    # Botão de logout
     st.sidebar.markdown("---")
     if st.sidebar.button("🚪 Sair"):
         st.session_state.autenticado = False
