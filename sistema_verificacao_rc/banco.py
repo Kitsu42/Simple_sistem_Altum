@@ -1,10 +1,11 @@
+#banco.py
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from base import Base
 from models import Usuario, Requisicao, Item
 
-engine = create_engine("sqlite:///compras.db")
-SessionLocal = sessionmaker(bind=engine)
+engine = create_engine("sqlite:///banco.db", connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def criar_banco():
     Base.metadata.create_all(bind=engine)

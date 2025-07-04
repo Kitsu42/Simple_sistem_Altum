@@ -1,3 +1,4 @@
+#backlog.py
 import streamlit as st
 from planilhas import carregar_backlog
 import pandas as pd
@@ -29,11 +30,11 @@ def exibir():
 
     if st.session_state.get("cargo") == "admin":
         arquivo = st.file_uploader("Enviar planilha de backlog", type="xlsx")
-        if arquivo:
+         if arquivo:
             df = carregar_backlog(arquivo)
 
-            if 'DATA SC' in df.columns:
-                df['Dias em aberto'] = pd.to_datetime("today") - pd.to_datetime(df['DATA SC'], errors='coerce')
+            if 'Data Cadastro' in df.columns:
+                df['Dias em aberto'] = pd.to_datetime("today") - pd.to_datetime(df['Data Cadastro'], errors='coerce')
                 df['Dias em aberto'] = df['Dias em aberto'].dt.days
 
             agrupado = df.groupby(['RC', 'Solicitacao Senior', 'Empresa', 'Filial']).agg({
@@ -44,19 +45,22 @@ def exibir():
 
             for i, row in agrupado.iterrows():
                 existente = db.query(Requisicao).filter_by(
-                    numero_sc=str(row['Nº SC']), empresa=row['Empresa'], filial=row['Filial']
+                    solicitacao_senior=str(row['Solicitacao Senior']),
+                    empresa=row['Empresa'],
+                    filial=row['Filial']
                 ).first()
 
                 if not existente:
-                    rc = Requisicao(
-                        numero_sc=str(row['Nº SC']),
-                        data=row['DATA SC'],
+                    rc_obj = Requisicao(
+                        rc=str(row['RC']),
+                        solicitacao_senior=str(row['Solicitacao Senior']),
+                        data=row['Data Cadastro'],
                         empresa=row['Empresa'],
                         filial=row['Filial'],
                         status="backlog",
-                        link=row.get("OBSERVAÇÃO", "")
+                        link=row.get("Link", "")
                     )
-                    db.add(rc)
+                    db.add(rc_obj)
             db.commit()
             st.success("Planilha importada com sucesso.")
 
@@ -73,7 +77,7 @@ def exibir():
     for i, rc in enumerate(rcs):
         dias_em_aberto = (pd.to_datetime("today") - pd.to_datetime(rc.data)).days
 
-        with st.expander(f"SC {rc.numero_sc} | {rc.empresa} - {rc.filial}"):
+        with st.expander(f"SC {rc.solicitacao_senior} | RC {rc.rc} | {rc.empresa} - {rc.filial}"):
             st.write(f"Data de criação: {rc.data}")
 
             if dias_em_aberto >= 10:

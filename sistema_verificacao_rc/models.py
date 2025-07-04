@@ -1,19 +1,21 @@
 # models.py
-from sqlalchemy import Column, Integer, String, ForeignKey, Date
-from base import Base 
+from sqlalchemy import Column, Integer, String, Date, Text
+from sqlalchemy.ext.declarative import declarative_base
+
+Base = declarative_base()
 
 class Requisicao(Base):
     __tablename__ = "requisicoes"
+
     id = Column(Integer, primary_key=True, index=True)
-    numero_rc = Column(String, index=True)
-    numero_sc = Column(String, index=True)
-    data = Column(Date)
+    rc = Column(String)
+    solicitacao_senior = Column(String)
     empresa = Column(String)
     filial = Column(String)
-    responsavel = Column(String, default="")
+    data = Column(Date)
     status = Column(String)
-    numero_oc = Column(String, default="")
-    link = Column(String, default="")
+    responsavel = Column(String)
+    link = Column(Text)
 
 class Usuario(Base):
     __tablename__ = "usuarios"
