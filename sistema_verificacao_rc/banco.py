@@ -2,6 +2,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from base import Base
+import models
 from models import Usuario, Requisicao, Item
 
 engine = create_engine("sqlite:///banco.db", connect_args={"check_same_thread": False})
