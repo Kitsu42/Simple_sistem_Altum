@@ -5,14 +5,17 @@ import streamlit as st
 
 sys.path.append(os.path.dirname(__file__))
 
+from banco import criar_banco
+
+# Cria banco e tabelas ANTES de qualquer outra coisa
+criar_banco()
+
+# Agora sim pode importar os módulos que dependem do banco
 from views import admin
 from auth import login
 from views import backlog, cotacao, finalizado, analise, erros
-from banco import criar_banco
 
 st.set_page_config(page_title="Sistema de Compras", layout="wide")
-
-criar_banco()
 
 # Inicializa variáveis da sessão
 if "autenticado" not in st.session_state:
@@ -26,13 +29,11 @@ if "cargo" not in st.session_state:
 if not st.session_state.autenticado:
     login.exibir()
 else:
-    # Exibe menu lateral com ou sem Admin, dependendo do cargo
     if st.session_state.cargo == "admin":
         menu = st.sidebar.radio("Menu", ("Backlog", "Em Cotação", "Finalizado", "Análise", "Erros", "Admin"))
     else:
         menu = st.sidebar.radio("Menu", ("Backlog", "Em Cotação", "Finalizado", "Análise", "Erros"))
 
-    # Correção: sem espaços a mais aqui
     if menu == "Backlog":
         backlog.exibir()
     elif menu == "Em Cotação":
@@ -46,7 +47,6 @@ else:
     elif menu == "Admin":
         admin.exibir()
 
-    # Botão de logout
     st.sidebar.markdown("---")
     if st.sidebar.button("🚪 Sair"):
         st.session_state.autenticado = False
