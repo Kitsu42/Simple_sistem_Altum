@@ -30,7 +30,7 @@ def exibir():
 
     if st.session_state.get("cargo") == "admin":
         arquivo = st.file_uploader("Enviar planilha de backlog", type="xlsx")
-         if arquivo:
+        if arquivo:
             df = carregar_backlog(arquivo)
 
             if 'Data Cadastro' in df.columns:
