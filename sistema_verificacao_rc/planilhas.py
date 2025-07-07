@@ -23,6 +23,10 @@ def carregar_backlog(caminho_excel: str) -> pd.DataFrame:
         if "Link" not in df.columns:
             df["Link"] = ""
 
+        # Converte 'Data Cadastro' para datetime.date se existir
+        if "Data Cadastro" in df.columns:
+            df["Data Cadastro"] = pd.to_datetime(df["Data Cadastro"], errors="coerce").dt.date
+
         dados.append(df)
 
     return pd.concat(dados, ignore_index=True)
