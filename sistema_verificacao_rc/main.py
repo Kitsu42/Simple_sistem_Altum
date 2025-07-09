@@ -7,8 +7,10 @@ sys.path.append(os.path.dirname(__file__))
 
 from banco import criar_banco
 
+# Cria banco e tabelas ANTES de qualquer outra coisa
 criar_banco()
 
+# Agora sim pode importar os módulos que dependem do banco
 from views import admin
 from auth import login
 from views import backlog, cotacao, finalizado, analise, erros
@@ -42,8 +44,7 @@ else:
         finalizado.exibir()
     elif menu == "Erros":
         erros.exibir()
-    elif menu == "Exportar Dados":
-    gerar_xml.exibir()
+        
     elif menu == "Admin":
         admin.exibir()
 
