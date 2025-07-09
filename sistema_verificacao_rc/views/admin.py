@@ -72,10 +72,6 @@ def exibir():
         st.dataframe(atrasadas_por_user)
 
     st.markdown("---")
-
-    st.download_button("📥 Exportar CSV", data=df.to_csv(index=False), file_name="relatorio.csv", mime="text/csv")
-
-    st.markdown("---")
     st.header("📤 Exportação Geral do Banco")
 
     # Exportar Requisições
@@ -104,17 +100,6 @@ def exibir():
         "ativo": u.ativo
     } for u in usuarios])
     st.download_button("📥 Baixar Usuários em CSV", df_users.to_csv(index=False), file_name="usuarios.csv", mime="text/csv")
-
-    # Exportar Itens
-    itens = db.query(Item).all()
-    df_itens = pd.DataFrame([{
-        "id": i.id,
-        "descricao": i.descricao,
-        "quantidade": i.quantidade,
-        "codigo_erp": i.codigo_erp,
-        "requisicao_id": i.requisicao_id
-    } for i in itens])
-    st.download_button("📥 Baixar Itens em CSV", df_itens.to_csv(index=False), file_name="itens.csv", mime="text/csv")
 
     st.header("👤 Gerenciamento de Usuários")
 
