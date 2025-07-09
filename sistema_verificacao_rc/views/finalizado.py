@@ -12,7 +12,7 @@ def exibir():
     # Filtro de datas
     col1, col2 = st.columns(2)
     with col1:
-        data_inicio = st.date_input("Data inicial", datetime.today() - timedelta(days=30))
+        data_inicio = st.date_input("Data inicial", datetime.today() - timedelta(days=1))
     with col2:
         data_fim = st.date_input("Data final", datetime.today())
 
