@@ -12,20 +12,20 @@ def exibir():
 
     # Filtros por empresa e filial (por usuário)
     with st.expander("🔍 Filtros", expanded=False):
+        # Coleta empresas e filiais únicas do banco
+        empresas = sorted(set([r.empresa for r in db.query(Requisicao.empresa).distinct()]))
+        filiais = sorted(set([r.filial for r in db.query(Requisicao.filial).distinct()]))
+
         with st.form("filtros_form"):
-            empresa_filtro = st.text_input("Empresa", value=st.session_state.get("empresa_filtro", ""))
-            filial_filtro = st.text_input("Filial", value=st.session_state.get("filial_filtro", ""))
+            empresa_filtro = st.selectbox("Empresa", ["Todas"] + empresas, index=0)
+            filial_filtro = st.selectbox("Filial", ["Todas"] + filiais, index=0)
 
-            acao_filtro = st.radio("Ação", ["Aplicar", "Limpar"], horizontal=True)
-            aplicar = st.form_submit_button("Confirmar")
+            aplicar = st.form_submit_button("Aplicar Filtros")
 
+        # Armazena nos filtros de sessão
         if aplicar:
-            if acao_filtro == "Aplicar":
-                st.session_state["empresa_filtro"] = empresa_filtro
-                st.session_state["filial_filtro"] = filial_filtro
-            else:
-                st.session_state["empresa_filtro"] = ""
-                st.session_state["filial_filtro"] = ""
+            st.session_state["empresa_filtro"] = "" if empresa_filtro == "Todas" else empresa_filtro
+            st.session_state["filial_filtro"] = "" if filial_filtro == "Todas" else filial_filtro
             st.experimental_rerun()
 
     if st.session_state.get("cargo") == "admin":
