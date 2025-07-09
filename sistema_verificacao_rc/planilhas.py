@@ -26,6 +26,8 @@ def carregar_backlog(caminho_excel: str) -> pd.DataFrame:
         # Converte 'Data Cadastro' para datetime.date se existir
         if "Data Cadastro" in df.columns:
             df["Data Cadastro"] = pd.to_datetime(df["Data Cadastro"], errors="coerce").dt.date
+            df["Data Cadastro"] = df["Data Cadastro"].fillna(pd.to_datetime("today").date())
+
 
         dados.append(df)
 
