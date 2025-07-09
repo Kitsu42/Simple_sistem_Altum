@@ -20,6 +20,7 @@ def exibir():
     db = SessionLocal()
 
     st.header("📊 Relatórios e Produtividade")
+    st.download_button("📥 Exportar CSV", data=df.to_csv(index=False), file_name="relatorio.csv", mime="text/csv")
 
     # Filtro de datas para relatório
     col1, col2 = st.columns(2)
