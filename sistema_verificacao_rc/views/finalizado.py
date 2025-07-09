@@ -10,7 +10,6 @@ def exibir():
     usuario = st.session_state.get("usuario")
     cargo = st.session_state.get("cargo")
 
-    # Admin vê todas; comprador vê apenas as suas
     if cargo == "admin":
         rcs = db.query(Requisicao).filter_by(status="finalizado").all()
     else:
