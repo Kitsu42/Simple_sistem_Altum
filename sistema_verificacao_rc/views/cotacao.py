@@ -15,7 +15,7 @@ def exibir():
         st.info("Nenhuma RC em cotação atribuída a você.")
     else:
         for rc in rcs:
-            with st.expander(f"SC {rc.numero_sc} | {rc.empresa} - {rc.filial}"):
+            with st.expander(f"SC {rc.solicitacao_senior} | {rc.empresa} - {rc.filial}"):
                 dias_em_aberto = (pd.to_datetime("today") - pd.to_datetime(rc.data)).days
                 st.write(f"Data de criação: {rc.data}  |  ⏱️ Dias em aberto: {dias_em_aberto}")
 
