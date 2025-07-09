@@ -19,7 +19,7 @@ def exibir():
         st.info("Nenhuma RC finalizada.")
     else:
         for rc in rcs:
-            with st.expander(f"SC {rc.solicitacao_senior} | RC {rc.rc} | {rc.empresa} - {rc.filial}"):
+            with st.expander(f"RC {rc.rc} | SC {rc.solicitacao_senior} | {rc.empresa} - {rc.filial}"):
                 st.write(f"Data de criação: {rc.data}")
                 st.write(f"Responsável: {rc.responsavel}")
                 st.write(f"Número da OC: {rc.numero_oc}")

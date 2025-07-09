@@ -77,7 +77,7 @@ def exibir():
     for i, rc in enumerate(rcs):
         dias_em_aberto = (pd.to_datetime("today") - pd.to_datetime(rc.data)).days
 
-        with st.expander(f"SC {rc.solicitacao_senior} | RC {rc.rc} | {rc.empresa} - {rc.filial}"):
+        with st.expander(f"RC {rc.rc} | SC {rc.solicitacao_senior} | {rc.empresa} - {rc.filial}"):
             st.write(f"Data de criação: {rc.data}")
 
             if dias_em_aberto >= 10:
