@@ -30,9 +30,9 @@ if not st.session_state.autenticado:
     login.exibir()
 else:
     if st.session_state.cargo == "admin":
-        menu = st.sidebar.radio("Menu", ("Backlog", "Em Cotação", "Finalizado", "Análise", "Erros", "Admin"))
+        menu = st.sidebar.radio("Menu", ("Backlog", "Em Cotação", "Análise","Finalizado", "Erros", "Admin"))
     else:
-        menu = st.sidebar.radio("Menu", ("Backlog", "Em Cotação", "Finalizado", "Análise", "Erros"))
+        menu = st.sidebar.radio("Menu", ("Backlog", "Em Cotação", "Análise", "Finalizado", "Erros"))
 
     if menu == "Backlog":
         backlog.exibir()
