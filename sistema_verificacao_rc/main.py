@@ -48,7 +48,7 @@ else:
         admin.exibir()
 
     st.sidebar.markdown("---")
-    if st.sidebar.button("🚪 Sair"):
+    if st.sidebar.button("Sair"):
         st.session_state.autenticado = False
         st.session_state.usuario = None
         st.session_state.cargo = None

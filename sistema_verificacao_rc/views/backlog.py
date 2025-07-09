@@ -26,7 +26,7 @@ def exibir():
         if aplicar:
             st.session_state["empresa_filtro"] = "" if empresa_filtro == "Todas" else empresa_filtro
             st.session_state["filial_filtro"] = "" if filial_filtro == "Todas" else filial_filtro
-            st.experimental_rerun()
+            st.rerun()
 
     if st.session_state.get("cargo") == "admin":
         arquivo = st.file_uploader("Enviar planilha de backlog", type="xlsx")
@@ -95,15 +95,15 @@ def exibir():
                 db.commit()
                 st.success("RC movida para cotação")
 
-            numero_oc = st.text_input("Número da OC", key=f"oc_{rc.id}")
+            #numero_oc = st.text_input("Número da OC", key=f"oc_{rc.id}")
 
-            if st.button("Finalizar RC", key=f"finaliza_{rc.id}"):
-                if not numero_oc.strip():
-                    st.error("Você deve preencher o número da OC antes de finalizar a RC.")
-                else:
-                    rc.status = "finalizado"
-                    rc.numero_oc = numero_oc
-                    db.commit()
-                    st.success("RC finalizada com sucesso.")
+            #if st.button("Finalizar RC", key=f"finaliza_{rc.id}"):
+             #   if not numero_oc.strip():
+             #       st.error("Você deve preencher o número da OC antes de finalizar a RC.")
+             #   else:
+             #       rc.status = "finalizado"
+             #       rc.numero_oc = numero_oc
+             #       db.commit()
+             #       st.success("RC finalizada com sucesso.")
 
     db.close()
