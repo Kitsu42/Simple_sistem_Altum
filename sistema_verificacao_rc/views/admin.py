@@ -75,7 +75,7 @@ def exibir():
 
     st.download_button("📥 Exportar CSV", data=df.to_csv(index=False), file_name="relatorio.csv", mime="text/csv")
 
-        st.markdown("---")
+    st.markdown("---")
     st.header("📤 Exportação Geral do Banco")
 
     # Exportar Requisições
