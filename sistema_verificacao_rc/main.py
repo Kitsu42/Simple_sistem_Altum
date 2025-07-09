@@ -38,10 +38,10 @@ else:
         backlog.exibir()
     elif menu == "Em Cotação":
         cotacao.exibir()
-    elif menu == "Finalizado":
-        finalizado.exibir()
     elif menu == "Análise":
         analise.exibir()
+    elif menu == "Finalizado":
+        finalizado.exibir()
     elif menu == "Erros":
         erros.exibir()
     elif menu == "Admin":
