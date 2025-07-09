@@ -13,7 +13,6 @@ class Requisicao(Base):
     status = Column(String)
     responsavel = Column(String)
     link = Column(Text)
-    numero_oc = Column(String)
 
 class Usuario(Base):
     __tablename__ = "usuarios"
