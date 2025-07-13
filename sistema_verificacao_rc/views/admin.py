@@ -31,47 +31,43 @@ def exibir():
     db = SessionLocal()
 
     st.header("📊 Relatórios de Atividade dos Usuários")
-db = SessionLocal()
 
-# Coleta todas as RCs com responsável definido
-requisicoes = db.query(Requisicao).filter(Requisicao.responsavel != None).all()
+    # Coleta todas as RCs com responsável definido
+    requisicoes = db.query(Requisicao).filter(Requisicao.responsavel != None).all()
 
-if not requisicoes:
-    st.info("Nenhuma RC registrada com responsável definido.")
-else:
-    df = pd.DataFrame([{
-        "responsavel": r.responsavel,
-        "status": r.status,
-        "data": r.data
-    } for r in requisicoes])
+    if not requisicoes:
+        st.info("Nenhuma RC registrada com responsável definido.")
+    else:
+        df = pd.DataFrame([{
+            "responsavel": r.responsavel,
+            "status": r.status,
+            "data": r.data
+        } for r in requisicoes])
 
-    df["data"] = pd.to_datetime(df["data"], errors="coerce")
-    df["dias_em_aberto"] = (pd.to_datetime("today") - df["data"]).dt.days
+        df["data"] = pd.to_datetime(df["data"], errors="coerce")
+        df["dias_em_aberto"] = (pd.to_datetime("today") - df["data"]).dt.days
 
-    # 1. RCs em cotação por usuário
-    em_cotacao = df[df["status"] == "em cotação"].groupby("responsavel").size().rename("Em Cotação")
+        # 1. RCs em cotação por usuário
+        em_cotacao = df[df["status"] == "em cotação"].groupby("responsavel").size().rename("Em Cotação")
 
-    # 2. RCs finalizadas por usuário
-    finalizadas = df[df["status"] == "finalizado"].groupby("responsavel").size().rename("Finalizadas")
+        # 2. RCs finalizadas por usuário
+        finalizadas = df[df["status"] == "finalizado"].groupby("responsavel").size().rename("Finalizadas")
 
-    # 3. RCs em cotação há mais de 10 dias por usuário
-    cotacoes_atrasadas = df[(df["status"] == "em cotação") & (df["dias_em_aberto"] > 10)]
-    atrasadas = cotacoes_atrasadas.groupby("responsavel").size().rename("Atrasadas (>10d)")
+        # 3. RCs em cotação há mais de 10 dias por usuário
+        cotacoes_atrasadas = df[(df["status"] == "em cotação") & (df["dias_em_aberto"] > 10)]
+        atrasadas = cotacoes_atrasadas.groupby("responsavel").size().rename("Atrasadas (>10d)")
 
-    # Junta todos em um único dataframe
-    resumo = pd.concat([em_cotacao, finalizadas, atrasadas], axis=1).fillna(0).astype(int)
-    resumo = resumo.sort_values(by=["Em Cotação", "Finalizadas"], ascending=False)
+        # Junta todos em um único dataframe
+        resumo = pd.concat([em_cotacao, finalizadas, atrasadas], axis=1).fillna(0).astype(int)
+        resumo = resumo.sort_values(by=["Em Cotação", "Finalizadas"], ascending=False)
 
-    st.subheader("📌 Resumo por usuário")
-    st.dataframe(resumo)
+        st.subheader("📌 Resumo por usuário")
+        st.dataframe(resumo)
+        st.subheader("📈 Gráficos por status")
+        st.bar_chart(resumo)
 
-    # Gráficos (opcional)
-    st.subheader("📈 Gráficos por status")
-    st.bar_chart(resumo)
-
-db.close()
     st.markdown("---")
-   st.header("📤 Exportação Geral do Banco")
+    st.header("📤 Exportação Geral do Banco")
 
     # Consulta RCs
     requisicoes = db.query(Requisicao).all()
@@ -149,7 +145,6 @@ db.close()
                     db.commit()
                     st.success("Usuário desativado com sucesso.")
                     st.session_state["reload_admin"] = True
-
             else:
                 if st.button("Ativar", key=f"ativar_{u.id}"):
                     u.ativo = 1
@@ -160,9 +155,7 @@ db.close()
             if st.button("Excluir", key=f"excluir_{u.id}"):
                 db.delete(u)
                 db.commit()
-                st.success("Usuário cadastrado com sucesso.")
+                st.success("Usuário excluído com sucesso.")
                 st.session_state["reload_admin"] = True
-
-        #criar uma opção de alterar a senha
 
     db.close()
