@@ -5,6 +5,17 @@ from banco import SessionLocal
 from models import Usuario, Requisicao
 from sqlalchemy import func
 from datetime import datetime, timedelta
+from io import BytesIO
+import pandas as pd
+
+def exportar_para_excel(dfs: dict) -> bytes:
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        for nome_aba, df in dfs.items():
+            # Remover quebras de linha e conversões de tipo
+            df_clean = df.applymap(lambda x: str(x).replace("\n", " ").strip() if isinstance(x, str) else x)
+            df_clean.to_excel(writer, sheet_name=nome_aba, index=False)
+    return output.getvalue()
 
 
 def exibir():
@@ -19,87 +30,87 @@ def exibir():
     st.title("👥 Administração do Sistema")
     db = SessionLocal()
 
-    st.header("📊 Relatórios e Produtividade")
+    st.header("📊 Relatórios de Atividade dos Usuários")
+db = SessionLocal()
 
-    # Filtro de datas para relatório
-    col1, col2 = st.columns(2)
-    with col1:
-        data_inicio = st.date_input("Data inicial", datetime.today() - timedelta(days=30))
-    with col2:
-        data_fim = st.date_input("Data final", datetime.today())
+# Coleta todas as RCs com responsável definido
+requisicoes = db.query(Requisicao).filter(Requisicao.responsavel != None).all()
 
-    # Consulta dados no intervalo
-    requisicoes = db.query(Requisicao).filter(Requisicao.data >= data_inicio, Requisicao.data <= data_fim).all()
+if not requisicoes:
+    st.info("Nenhuma RC registrada com responsável definido.")
+else:
     df = pd.DataFrame([{
-        "usuario": r.responsavel,
-        "data": r.data,
+        "responsavel": r.responsavel,
         "status": r.status,
-        "empresa": r.empresa,
-        "filial": r.filial
-    } for r in requisicoes if r.responsavel])
+        "data": r.data
+    } for r in requisicoes])
 
-    if df.empty:
-        st.info("Nenhuma requisição registrada no período.")
-    else:
-        st.subheader("📈 RCs por usuário e status")
-        prod = df.groupby(["usuario", "status"]).size().unstack(fill_value=0)
-        st.dataframe(prod)
+    df["data"] = pd.to_datetime(df["data"], errors="coerce")
+    df["dias_em_aberto"] = (pd.to_datetime("today") - df["data"]).dt.days
 
-        st.subheader("📅 RCs criadas por dia")
-        por_data = df.groupby("data").size()
-        st.line_chart(por_data)
+    # 1. RCs em cotação por usuário
+    em_cotacao = df[df["status"] == "em cotação"].groupby("responsavel").size().rename("Em Cotação")
 
-        st.subheader("🧾 Total de RCs por usuário no período")
-        total = df.groupby("usuario").size().sort_values(ascending=False)
-        st.bar_chart(total)
+    # 2. RCs finalizadas por usuário
+    finalizadas = df[df["status"] == "finalizado"].groupby("responsavel").size().rename("Finalizadas")
 
-        st.subheader("📍 RCs em cotação por usuário")
-        em_cotacao = df[df.status == "em cotação"].groupby("usuario").size()
-        st.dataframe(em_cotacao)
+    # 3. RCs em cotação há mais de 10 dias por usuário
+    cotacoes_atrasadas = df[(df["status"] == "em cotação") & (df["dias_em_aberto"] > 10)]
+    atrasadas = cotacoes_atrasadas.groupby("responsavel").size().rename("Atrasadas (>10d)")
 
-        st.subheader("✅ RCs finalizadas por usuário")
-        finalizadas = df[df["status"] == "finalizado"].groupby("usuario").size()
-        st.dataframe(finalizadas)
+    # Junta todos em um único dataframe
+    resumo = pd.concat([em_cotacao, finalizadas, atrasadas], axis=1).fillna(0).astype(int)
+    resumo = resumo.sort_values(by=["Em Cotação", "Finalizadas"], ascending=False)
 
+    st.subheader("📌 Resumo por usuário")
+    st.dataframe(resumo)
 
-        st.subheader("⏱️ RCs atrasadas por usuário")
-        df["data"] = pd.to_datetime(df["data"], errors="coerce")
-        dias = (pd.to_datetime("today") - df["data"]).dt.days
+    # Gráficos (opcional)
+    st.subheader("📈 Gráficos por status")
+    st.bar_chart(resumo)
 
-        df["dias"] = dias
-        atrasadas = df[(df["status"] == "em cotação") & (df["dias"] > 7)]  # Considera atraso > 7 dias
-        atrasadas_por_user = atrasadas.groupby("usuario").size()
-        st.dataframe(atrasadas_por_user)
-
+db.close()
     st.markdown("---")
-    st.header("📤 Exportação Geral do Banco")
+   st.header("📤 Exportação Geral do Banco")
 
-    # Exportar Requisições
+    # Consulta RCs
     requisicoes = db.query(Requisicao).all()
     df_rcs = pd.DataFrame([{
-        "id": r.id,
-        "rc": r.rc,
-        "solicitacao_senior": r.solicitacao_senior,
-        "empresa": r.empresa,
-        "filial": r.filial,
-        "data": r.data,
-        "status": r.status,
-        "responsavel": r.responsavel,
-        "link": r.link,
-        "numero_oc": r.numero_oc
+        "ID": r.id,
+        "RC": r.rc,
+        "Solicitação Senior": r.solicitacao_senior,
+        "Empresa": r.empresa,
+        "Filial": r.filial,
+        "Data": r.data,
+        "Status": r.status,
+        "Responsável": r.responsavel,
+        "Link": r.link,
+        "Número OC": r.numero_oc
     } for r in requisicoes])
-    st.download_button("📥 Baixar RCs em CSV", df_rcs.to_csv(index=False), file_name="requisicoes.csv", mime="text/csv")
 
-    # Exportar Usuários
+    # Consulta Usuários
     usuarios = db.query(Usuario).all()
     df_users = pd.DataFrame([{
-        "id": u.id,
-        "nome": u.nome,
-        "senha": u.senha,
-        "cargo": u.cargo,
-        "ativo": u.ativo
+        "ID": u.id,
+        "Nome": u.nome,
+        "Senha": u.senha,
+        "Cargo": u.cargo,
+        "Ativo": "Sim" if u.ativo else "Não"
     } for u in usuarios])
-    st.download_button("📥 Baixar Usuários em CSV", df_users.to_csv(index=False), file_name="usuarios.csv", mime="text/csv")
+
+    # Gera arquivo .xlsx com múltiplas abas
+    arquivo_excel = exportar_para_excel({
+        "RCs": df_rcs,
+        "Usuários": df_users
+    })
+
+    # Botão de download único
+    st.download_button(
+        label="📥 Baixar Relatório Completo (.xlsx)",
+        data=arquivo_excel,
+        file_name="relatorio_sistema_compras.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
     st.header("👤 Gerenciamento de Usuários")
 
