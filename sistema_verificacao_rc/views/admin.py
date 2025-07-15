@@ -6,13 +6,14 @@ from models import Usuario, Requisicao
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from io import BytesIO
-import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+
 
 def exportar_para_excel(dfs: dict) -> bytes:
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         for nome_aba, df in dfs.items():
-            # Remover quebras de linha e conversões de tipo
             df_clean = df.applymap(lambda x: str(x).replace("\n", " ").strip() if isinstance(x, str) else x)
             df_clean.to_excel(writer, sheet_name=nome_aba, index=False)
     return output.getvalue()
@@ -32,7 +33,6 @@ def exibir():
 
     st.header("📊 Relatórios de Atividade dos Usuários")
 
-    # Coleta todas as RCs com responsável definido
     requisicoes = db.query(Requisicao).filter(Requisicao.responsavel != None).all()
 
     if not requisicoes:
@@ -41,35 +41,51 @@ def exibir():
         df = pd.DataFrame([{
             "responsavel": r.responsavel,
             "status": r.status,
-            "data": r.data
+            "data": r.data,
+            "filial": r.filial
         } for r in requisicoes])
 
         df["data"] = pd.to_datetime(df["data"], errors="coerce")
         df["dias_em_aberto"] = (pd.to_datetime("today") - df["data"]).dt.days
 
-        # 1. RCs em cotação por usuário
+        # RCs por status
         em_cotacao = df[df["status"] == "em cotação"].groupby("responsavel").size().rename("Em Cotação")
-
-        # 2. RCs finalizadas por usuário
         finalizadas = df[df["status"] == "finalizado"].groupby("responsavel").size().rename("Finalizadas")
-
-        # 3. RCs em cotação há mais de 10 dias por usuário
         cotacoes_atrasadas = df[(df["status"] == "em cotação") & (df["dias_em_aberto"] > 10)]
         atrasadas = cotacoes_atrasadas.groupby("responsavel").size().rename("Atrasadas (>10d)")
 
-        # Junta todos em um único dataframe
         resumo = pd.concat([em_cotacao, finalizadas, atrasadas], axis=1).fillna(0).astype(int)
         resumo = resumo.sort_values(by=["Em Cotação", "Finalizadas"], ascending=False)
 
         st.subheader("📌 Resumo por usuário")
         st.dataframe(resumo)
-        st.subheader("📈 Gráficos por status")
+
+        st.subheader("📈 Gráficos por status (barra simples)")
         st.bar_chart(resumo)
+
+        # Gráfico Pizza: RCs por usuário
+        st.subheader("🥧 RCs por Usuário (Pizza)")
+        rcs_por_usuario = df["responsavel"].value_counts().reset_index()
+        rcs_por_usuario.columns = ["Responsável", "Total RCs"]
+        fig_pizza = px.pie(rcs_por_usuario, names="Responsável", values="Total RCs", hole=0.3,
+                           title="Distribuição de RCs por Usuário")
+        st.plotly_chart(fig_pizza, use_container_width=True)
+
+        # Gráfico Barras: RCs atrasadas por responsável + filial
+        st.subheader("📊 RCs Atrasadas (>10 dias) por Responsável e Filial")
+        if cotacoes_atrasadas.empty:
+            st.info("Nenhuma RC em atraso superior a 10 dias.")
+        else:
+            cotacoes_atrasadas["Responsável + Filial"] = cotacoes_atrasadas["responsavel"] + " - " + cotacoes_atrasadas["filial"].fillna("Desconhecida")
+            atraso_por_grupo = cotacoes_atrasadas.groupby("Responsável + Filial").size().reset_index(name="RCs Atrasadas")
+            fig_barra = px.bar(atraso_por_grupo, x="Responsável + Filial", y="RCs Atrasadas",
+                               title="RCs em Atraso (>10 dias)", text_auto=True, color="RCs Atrasadas")
+            fig_barra.update_layout(xaxis_tickangle=-45)
+            st.plotly_chart(fig_barra, use_container_width=True)
 
     st.markdown("---")
     st.header("📤 Exportação Geral do Banco")
 
-    # Consulta RCs
     requisicoes = db.query(Requisicao).all()
     df_rcs = pd.DataFrame([{
         "ID": r.id,
@@ -84,7 +100,6 @@ def exibir():
         "Número OC": r.numero_oc
     } for r in requisicoes])
 
-    # Consulta Usuários
     usuarios = db.query(Usuario).all()
     df_users = pd.DataFrame([{
         "ID": u.id,
@@ -94,13 +109,11 @@ def exibir():
         "Ativo": "Sim" if u.ativo else "Não"
     } for u in usuarios])
 
-    # Gera arquivo .xlsx com múltiplas abas
     arquivo_excel = exportar_para_excel({
         "RCs": df_rcs,
         "Usuários": df_users
     })
 
-    # Botão de download único
     st.download_button(
         label="📥 Baixar Relatório Completo (.xlsx)",
         data=arquivo_excel,
@@ -109,10 +122,8 @@ def exibir():
     )
 
     st.markdown("---")
-    
     st.header("👤 Gerenciamento de Usuários")
 
-    # --- Formulário de cadastro ---
     with st.form("form_novo_usuario"):
         nome = st.text_input("Nome de usuário")
         senha = st.text_input("Senha")
