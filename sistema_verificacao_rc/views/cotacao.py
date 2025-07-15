@@ -24,10 +24,10 @@ def exibir():
 
                 fornecedor = st.text_input("Fornecedor", key=f"fornecedor_{rc.id}")
 
-                nf_ok = st.checkbox("NF Recebida", key=f"nf_{rc.id}")
                 cobrado = st.checkbox("Cobrar orçamento", key=f"cob_{rc.id}")
-                cobrarNF = st.checkbox("Cobrar NF", key=f"cobnf_{rc.id}")
                 envio_ok = st.checkbox("OC enviada ao fornecedor", key=f"envio_{rc.id}")
+                nf_ok = st.checkbox("NF Recebida", key=f"nf_{rc.id}")
+                anexarDOC = st.checkbox("NF e Boleto anexados", key=f"anxBNF_{rc.id}")
 
                 numero_oc = st.text_input("Número da OC", key=f"oc_{rc.id}")
 

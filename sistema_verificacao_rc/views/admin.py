@@ -108,6 +108,8 @@ def exibir():
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
+    st.markdown("---")
+    
     st.header("👤 Gerenciamento de Usuários")
 
     # --- Formulário de cadastro ---
