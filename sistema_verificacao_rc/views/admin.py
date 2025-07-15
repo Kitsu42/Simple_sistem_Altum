@@ -52,10 +52,11 @@ def exibir():
         # RCs por status
         em_cotacao = df[df["status"] == "em cotação"].groupby("responsavel").size().rename("Em Cotação")
         finalizadas = df[df["status"] == "finalizado"].groupby("responsavel").size().rename("Finalizadas")
-        atrasadas = df[(df["status"] == "em cotação") & (df["dias_em_aberto"] > 10)].groupby("responsavel").size().rename("Atrasadas (>10d)")
+        backlog = df[df["status"] == "pendente"].groupby("responsavel").size().rename("Backlog")
+        nao_atrasadas = df[(df["status"] == "em cotação") & (df["dias_em_aberto"] <= 10)].groupby("responsavel").size().rename("Em cotação - no prazo")
 
-        resumo = pd.concat([em_cotacao, finalizadas, atrasadas], axis=1).fillna(0).astype(int)
-        resumo = resumo.sort_values(by=["Em Cotação", "Finalizadas"], ascending=False)
+        resumo = pd.concat([em_cotacao, finalizadas, backlog, nao_atrasadas], axis=1).fillna(0).astype(int)
+        resumo = resumo.sort_values(by=["Finalizadas"], ascending=False)
 
         st.subheader("📌 Resumo por usuário")
         st.dataframe(resumo)
@@ -64,7 +65,7 @@ def exibir():
         st.subheader("📈 Gráficos por status")
         st.bar_chart(resumo)
 
-        st.subheader("🥧 RCs por Usuário (Pizza)")
+        st.subheader("🥧 RCs por Usuário")
         rcs_por_usuario = df["responsavel"].value_counts().reset_index()
         rcs_por_usuario.columns = ["Responsável", "Total RCs"]
         fig_pizza = px.pie(rcs_por_usuario, names="Responsável", values="Total RCs", hole=0.3,
