@@ -1,17 +1,27 @@
 # banco.py
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from base import Base
-from models import Usuario, Empresa, Filial, Requisicao
 
+# Import seguro: funciona tanto quando rodamos como pacote (python -m)
+# quanto quando rodamos o main como script (streamlit run caminho/main.py)
+try:
+    from .base import Base
+    from .models import Usuario, Empresa, Filial, Requisicao
+except ImportError:  # fallback p/ execução direta
+    from base import Base
+    from models import Usuario, Empresa, Filial, Requisicao
+
+
+# ------------------------------------------------------------------
+# Engine / Session
+# ------------------------------------------------------------------
 engine = create_engine("sqlite:///banco.db", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
-from base import Base
-from models import Usuario, Empresa, Filial, Requisicao
 
-# ---- Dados seed ----
+
+# ------------------------------------------------------------------
+# Dados seed
+# ------------------------------------------------------------------
 EMPRESAS_SEED = [
     {
         "codigo": "5SS",
@@ -50,6 +60,23 @@ EMPRESAS_SEED = [
     },
 ]
 
+
+# ------------------------------------------------------------------
+# Helpers de migração
+# ------------------------------------------------------------------
+def _limpa_cnpj(cnpj: str) -> str:
+    return "".join(ch for ch in str(cnpj) if ch.isdigit())
+
+
+def _ensure_filial_column(engine):
+    """Garante que a coluna filial_id exista em 'requisicoes' (SQLite)."""
+    with engine.connect() as conn:
+        cols = [row[1] for row in conn.execute(text("PRAGMA table_info(requisicoes)"))]
+        if "filial_id" not in cols:
+            conn.execute(text("ALTER TABLE requisicoes ADD COLUMN filial_id INTEGER"))
+            # (Sem FK retroativa; ok para transição.)
+
+
 def _ensure_new_requisicao_cols(engine):
     """Adiciona colunas novas em 'requisicoes' se ainda não existem (SQLite)."""
     with engine.connect() as conn:
@@ -64,17 +91,17 @@ def _ensure_new_requisicao_cols(engine):
         if "observacoes" not in cols:
             conn.execute(text("ALTER TABLE requisicoes ADD COLUMN observacoes TEXT"))
 
-def _limpa_cnpj(cnpj: str) -> str:
-    return "".join(ch for ch in str(cnpj) if ch.isdigit())
 
-
+# ------------------------------------------------------------------
+# Seeds
+# ------------------------------------------------------------------
 def popular_empresas_filiais(session):
     if session.query(Empresa).count() > 0:
         return
     for emp in EMPRESAS_SEED:
         e = Empresa(codigo=emp["codigo"], nome=emp["nome"])
         session.add(e)
-        session.flush()  # garante e.id
+        session.flush()
         for codigo, cnpj, cidade in emp["filiais"]:
             f = Filial(
                 empresa_id=e.id,
@@ -94,15 +121,6 @@ def popular_usuarios_iniciais(session):
             Usuario(nome="user01", senha="user01", cargo="comprador"),
         ])
         session.commit()
-
-
-def _ensure_filial_column(engine):
-    """Garante que a coluna filial_id exista em 'requisicoes' (SQLite)."""
-    with engine.connect() as conn:
-        cols = [row[1] for row in conn.execute(text("PRAGMA table_info(requisicoes)"))]
-        if "filial_id" not in cols:
-            conn.execute(text("ALTER TABLE requisicoes ADD COLUMN filial_id INTEGER"))
-            # Em SQLite não aplicamos FK retroativa aqui; ok para transição.
 
 
 def migrar_requisicoes_filial(session):
@@ -135,6 +153,9 @@ def migrar_requisicoes_filial(session):
         print(f"[MIGRAÇÃO] Vinculadas {changed} requisições a filiais.")
 
 
+# ------------------------------------------------------------------
+# Entrada única de criação/atualização de schema
+# ------------------------------------------------------------------
 def criar_banco():
     print("👉 Criando/atualizando banco...")
     Base.metadata.create_all(bind=engine)
@@ -148,4 +169,3 @@ def criar_banco():
     finally:
         session.close()
     print("✅ Banco pronto.")
-
