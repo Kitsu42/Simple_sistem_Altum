@@ -14,7 +14,7 @@ criar_banco()
 
 from views import admin
 from auth import login
-from views import backlog, cotacao, finalizado, analise, erros
+from views import backlog, cotacao, finalizado, erros
 
 st.set_page_config(page_title="Sistema de Compras", layout="wide")
 
