@@ -8,9 +8,6 @@ from datetime import datetime, timedelta
 from io import BytesIO
 import plotly.express as px
 import plotly.graph_objects as go
-from utils import parse_backlog_xml, parse_backlog_excel, STATUS_BACKLOG
-from models import Requisicao
-
 from utils import (
     STATUS_BACKLOG,
     STATUS_EM_COTACAO,
@@ -137,6 +134,9 @@ def exibir():
             ])
             fig_barra.update_layout(title="RCs em Atraso (>10 dias)", xaxis_tickangle=-45)
             st.plotly_chart(fig_barra, use_container_width=True)
+
+from utils import parse_backlog_xml, parse_backlog_excel, STATUS_BACKLOG
+from models import Requisicao
 
 def importar_backlog(df, db):
     """Insere RCs do DataFrame no banco."""
