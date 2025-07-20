@@ -11,9 +11,10 @@ def _fmt_date(d):
     if not d:
         return "—"
     try:
-        return pd.to_datetime(d).strftime("%d/%m/%Y")
+        return pd.to_datetime(d, errors="coerce").strftime("%d/%m/%Y")
     except Exception:
         return str(d)
+
 
 def _badge_dias(dias):
     if dias is None:
@@ -25,15 +26,18 @@ def _badge_dias(dias):
     else:
         st.info(f"📅 Em aberto há {dias} dias.")
 
+
 def _dias_para_prevista(data_prev):
     if not data_prev:
         return None
     try:
-        dprev = pd.to_datetime(data_prev).date()
+        dprev = pd.to_datetime(data_prev, errors="coerce")
+        if pd.isna(dprev):
+            return None
+        dprev = dprev.date()
     except Exception:
         return None
-    hoje = date.today()
-    return (dprev - hoje).days
+    return (date.today() - dprev).days * -1  # positivo = falta(m) dias; negativo = atraso
 
 
 def exibir():
@@ -56,7 +60,7 @@ def exibir():
 
         header = f"RC {rc.rc} | SC {rc.solicitacao_senior or '—'} | {empresa_nome} - {filial_nome}"
         with st.expander(header):
-            col1, col2, col3 = st.columns([2,2,2])
+            col1, col2, col3 = st.columns([2, 2, 2])
             with col1:
                 st.write(f"**Data Cadastro:** {_fmt_date(rc.data)}")
             with col2:
@@ -64,9 +68,10 @@ def exibir():
             with col3:
                 _badge_dias(dias_open)
 
+            # Indicador de prazo (comparação Data Prevista vs hoje)
             if dias_para_prev is not None:
                 if dias_para_prev < 0:
-                    st.error(f"📉 {abs(dias_para_prev)} dias atrasado vs Data Prevista.")
+                    st.error(f"📉 Atrasado {abs(dias_para_prev)} dia(s) além da Data Prevista.")
                 elif dias_para_prev == 0:
                     st.warning("⚠️ Vence hoje (Data Prevista).")
                 else:
@@ -83,24 +88,11 @@ def exibir():
             if rc.link:
                 st.markdown(f"[📄 Abrir no painel]({rc.link})", unsafe_allow_html=True)
 
-            # Campos de ação
+            # Campos operacionais (ainda não persistidos; placeholders)
             fornecedor = st.text_input("Fornecedor", key=f"fornecedor_{rc.id}")
             st.checkbox("Cobrar orçamento", key=f"cob_{rc.id}")
             st.checkbox("OC enviada ao fornecedor", key=f"envio_{rc.id}")
             st.checkbox("NF Recebida", key=f"nf_{rc.id}")
             st.checkbox("NF e Boleto anexados", key=f"anxBNF_{rc.id}")
 
-            numero_oc = st.text_input("Número da OC", key=f"oc_{rc.id}")
-
-            if st.button("Finalizar RC", key=f"finaliza_{rc.id}"):
-                if not numero_oc.strip():
-                    st.error("Você deve preencher o número da OC antes de finalizar a RC.")
-                else:
-                    rc.status = STATUS_FINALIZADO
-                    rc.numero_oc = numero_oc
-                    db.commit()
-                    st.success("RC finalizada com sucesso.")
-                    st.rerun()
-                    return
-
-    db.close()
+            numero_oc = st.text_input("Númer
