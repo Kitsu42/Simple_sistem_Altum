@@ -1,7 +1,7 @@
 # models.py
 from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey
 from sqlalchemy.orm import relationship
-from base import Base
+from .base import Base
 
 
 class Empresa(Base):
