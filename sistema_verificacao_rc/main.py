@@ -3,25 +3,36 @@ import sys
 import os
 import streamlit as st
 
-# Garante que o diretório raiz do projeto esteja no sys.path
+# ---------------------------------------------------------
+# Ajuste de caminho: garante que podemos importar como script
+# ---------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.dirname(BASE_DIR)
 if BASE_DIR not in sys.path:
-    sys.path.append(BASE_DIR)
+    sys.path.insert(0, BASE_DIR)
 if PARENT_DIR not in sys.path:
-    sys.path.append(PARENT_DIR)
+    sys.path.insert(0, PARENT_DIR)
 
-from banco import criar_banco
-
-criar_banco()
-
-from views import admin
-from auth import login
-from views import backlog, cotacao, finalizado, analise, erros
-
+# ---------------------------------------------------------
+# Config inicial de página (antes de qualquer UI)
+# ---------------------------------------------------------
 st.set_page_config(page_title="Sistema de Compras", layout="wide")
 
-# Inicializa variáveis da sessão
+# ---------------------------------------------------------
+# Banco / criação de schema
+# ---------------------------------------------------------
+from banco import criar_banco  # script-style
+criar_banco()
+
+# ---------------------------------------------------------
+# Demais módulos
+# ---------------------------------------------------------
+from auth import login
+from views import admin, backlog, cotacao, finalizado, analise, erros
+
+# ---------------------------------------------------------
+# Estado de sessão
+# ---------------------------------------------------------
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
 if "usuario" not in st.session_state:
@@ -29,7 +40,9 @@ if "usuario" not in st.session_state:
 if "cargo" not in st.session_state:
     st.session_state.cargo = None
 
-# Verifica se usuário está autenticado
+# ---------------------------------------------------------
+# Fluxo principal
+# ---------------------------------------------------------
 if not st.session_state.autenticado:
     login.exibir()
 else:
@@ -42,13 +55,12 @@ else:
         backlog.exibir()
     elif menu == "Cotação":
         cotacao.exibir()
-    #elif menu == "Análise":
-        #analise.exibir()
+    # elif menu == "Análise":
+    #     analise.exibir()
     elif menu == "Finalizado":
         finalizado.exibir()
     elif menu == "Erros":
         erros.exibir()
-        
     elif menu == "Admin":
         admin.exibir()
 

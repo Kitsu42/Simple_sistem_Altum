@@ -1,7 +1,13 @@
 # models.py
 from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey
 from sqlalchemy.orm import relationship
-from .base import Base
+
+# Import compatível com pacote (python -m) E script (streamlit run)
+try:
+    from .base import Base
+except ImportError:  # execução como script
+    from base import Base
+
 
 
 class Empresa(Base):
