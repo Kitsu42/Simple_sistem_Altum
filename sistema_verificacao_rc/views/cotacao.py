@@ -42,6 +42,6 @@ def exibir():
                         rc.numero_oc = numero_oc
                         db.commit()
                         st.success("RC finalizada com sucesso.")
-                        st.experimental_rerun()
+                        st.rerun()
 
     db.close()

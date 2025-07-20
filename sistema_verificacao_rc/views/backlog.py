@@ -67,6 +67,6 @@ def exibir():
                 rc.responsavel = st.session_state.get("usuario", "")
                 db.commit()
                 st.success("RC movida para cotação")
-                st.experimental_rerun()
+                st.rerun()
 
     db.close()
