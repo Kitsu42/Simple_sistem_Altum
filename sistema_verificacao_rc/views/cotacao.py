@@ -81,6 +81,6 @@ def exibir():
                     db.commit()
                     st.success("RC finalizada com sucesso.")
                     st.rerun()
-                    return  # encerra após rerun
+                    return
 
     db.close()

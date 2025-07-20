@@ -15,65 +15,8 @@ from utils import (
     dias_em_aberto,
     parse_backlog_xml,
     parse_backlog_excel,
+    limpa_cnpj,
 )
-
-
-# ------------------------------------------------------------------
-# Importa RCs de um DataFrame (usado após upload de backlog)
-# ------------------------------------------------------------------
-def importar_backlog(df: pd.DataFrame, db) -> int:
-    """
-    Insere RCs presentes em df no banco como STATUS_BACKLOG.
-    Não duplica RC (chave: coluna 'rc').
-    """
-    # Normaliza nomes de coluna
-    df_cols = {c.lower(): c for c in df.columns}
-    def col(name):  # retorna coluna se existir
-        return df_cols.get(name, None)
-
-    novas = 0
-    for _, row in df.iterrows():
-        rc_num = str(row[col("rc")]) if col("rc") in df_cols else ""
-        if not rc_num.strip():
-            continue
-
-        # Já existe?
-        existente = db.query(Requisicao).filter_by(rc=rc_num).first()
-        if existente:
-            continue
-
-        # Extrai campos
-        sc_val   = str(row[col("solicitacao_senior")]) if col("solicitacao_senior") else str(row.get("solicitacao_senior", ""))
-        emp_val  = str(row[col("empresa")]) if col("empresa") else str(row.get("empresa", ""))
-        fil_val  = str(row[col("filial")]) if col("filial") else str(row.get("filial", ""))
-        link_val = str(row[col("link")]) if col("link") else str(row.get("link", ""))
-
-        # Data
-        if col("data") and not pd.isna(row[col("data")]):
-            data_val = pd.to_datetime(row[col("data")], errors="coerce")
-        else:
-            data_val = pd.NaT
-        if pd.isna(data_val):
-            data_py = None
-        else:
-            data_py = data_val.date()
-
-        # Cria RC
-        r = Requisicao(
-            rc=rc_num,
-            solicitacao_senior=sc_val,
-            empresa_txt=emp_val,
-            filial_txt=fil_val,
-            data=data_py,
-            status=STATUS_BACKLOG,
-            link=link_val,
-        )
-        db.add(r)
-        novas += 1
-
-    if novas:
-        db.commit()
-    return novas
 
 
 # ------------------------------------------------------------------
@@ -115,12 +58,117 @@ def _carrega_df_requisicoes(db):
 
 
 # ------------------------------------------------------------------
+# Importa RCs do DataFrame de backlog
+# ------------------------------------------------------------------
+def importar_backlog(df: pd.DataFrame, db) -> dict:
+    """
+    Insere RCs do DataFrame no banco como STATUS_BACKLOG.
+    Evita duplicar RC (chave: campo 'rc').
+    Tenta vincular a Filial por CNPJ; fallback: mantém somente texto.
+    Retorna dict com contagens.
+    """
+    # Pré-carrega filiais por CNPJ (apenas dígitos)
+    filiais = db.query(Filial).options(joinedload(Filial.empresa)).all()
+    filiais_por_cnpj = {limpa_cnpj(f.cnpj): f for f in filiais if f.cnpj}
+
+    novos = 0
+    ja_existia = 0
+    vinculadas_filial = 0
+    sem_cnpj = 0
+    sem_match = 0
+
+    # Normaliza colunas (df veio do parse_backlog_excel)
+    # garantias: rc, solicitacao_senior, data_cadastro, filial_raw, Filial_CNPJ, Filial_Nome etc.
+    cols = {c.lower(): c for c in df.columns}
+
+    def get(row, logical):
+        c = cols.get(logical.lower())
+        if c:
+            return row[c]
+        return row.get(logical, "")
+
+    for _, row in df.iterrows():
+        rc_num = str(get(row, "rc")).strip()
+        if not rc_num:
+            continue
+
+        # já existe?
+        if db.query(Requisicao).filter_by(rc=rc_num).first():
+            ja_existia += 1
+            continue
+
+        sc_val = str(get(row, "solicitacao_senior") or "").strip()
+
+        emp_txt = ""  # derivaremos da filial se encontrarmos; fica vazio/legado caso contrário
+        fil_raw = str(get(row, "filial_raw") or "").strip()
+        fil_cnpj = limpa_cnpj(row.get("Filial_CNPJ", "")) if "Filial_CNPJ" in df.columns else ""
+        fil_nome = str(row.get("Filial_Nome", "")).strip() if "Filial_Nome" in df.columns else ""
+
+        # Data de cadastro
+        data_cad = row.get("data_cadastro")
+        if pd.isna(data_cad):
+            data_py = None
+        else:
+            # se vier como Timestamp -> .date(); se string -> to_datetime
+            if isinstance(data_cad, pd.Timestamp):
+                data_py = data_cad.date()
+            else:
+                dt = pd.to_datetime(data_cad, errors="coerce")
+                data_py = None if pd.isna(dt) else dt.date()
+
+        # Data prevista (não salva no modelo atual; guardamos em link? ignoramos)
+        # TODO: criar coluna futura
+
+        # Observações / Usuário (modelo ainda não tem campos; ignoramos por ora)
+        link_val = str(get(row, "link") or "").strip()
+
+        # Monta RC
+        r = Requisicao(
+            rc=rc_num,
+            solicitacao_senior=sc_val,
+            empresa_txt=emp_txt,
+            filial_txt=fil_nome or fil_raw,
+            data=data_py,
+            status=STATUS_BACKLOG,
+            link=link_val,
+        )
+
+        # Vincula filial se possível
+        if fil_cnpj:
+            f = filiais_por_cnpj.get(fil_cnpj)
+            if f:
+                r.filial_id = f.id
+                r.empresa_txt = f.empresa.nome  # para histórico textual
+                vinculadas_filial += 1
+            else:
+                sem_match += 1
+        else:
+            sem_cnpj += 1
+
+        db.add(r)
+        novos += 1
+
+    if novos:
+        db.commit()
+
+    return {
+        "novos": novos,
+        "ja_existia": ja_existia,
+        "vinculadas_filial": vinculadas_filial,
+        "sem_cnpj": sem_cnpj,
+        "sem_match": sem_match,
+    }
+
+
+# ------------------------------------------------------------------
 # VIEW PRINCIPAL
 # ------------------------------------------------------------------
 def exibir():
+    # reload externo (de import ou ações)
     if st.session_state.get("reload_admin"):
         st.session_state["reload_admin"] = False
         st.rerun()
+        return
 
     if st.session_state.get("cargo") != "admin":
         st.error("Acesso restrito.")
@@ -134,8 +182,8 @@ def exibir():
     # ==============================================================
     st.header("📤 Importar Backlog (XML ou Excel)")
     arquivo = st.file_uploader("Selecione o arquivo de backlog", type=["xml", "xlsx"])
+    df_backlog = None
     if arquivo:
-        # precisamos resetar o ponteiro caso pandas/ET leia o buffer
         arquivo.seek(0)
         if arquivo.name.lower().endswith(".xml"):
             try:
@@ -143,22 +191,28 @@ def exibir():
                 st.write(f"{len(df_backlog)} RCs encontradas no XML.")
             except Exception as e:
                 st.error(str(e))
-                df_backlog = None
         else:
             try:
                 df_backlog = parse_backlog_excel(arquivo)
                 st.write(f"{len(df_backlog)} RCs encontradas no Excel.")
             except Exception as e:
                 st.error(str(e))
-                df_backlog = None
 
         if df_backlog is not None and not df_backlog.empty:
-            st.dataframe(df_backlog.head(50))
+            st.dataframe(df_backlog.head(40))
             if st.button("Importar RCs para o Sistema"):
-                novas = importar_backlog(df_backlog, db)
-                st.success(f"{novas} novas RCs foram adicionadas ao backlog.")
+                stats = importar_backlog(df_backlog, db)
+                st.success(
+                    f"{stats['novos']} novas RCs inseridas. "
+                    f"{stats['ja_existia']} ignoradas (já existiam). "
+                    f"{stats['vinculadas_filial']} vinculadas à filial cadastral."
+                )
+                if stats["sem_match"]:
+                    st.warning(f"{stats['sem_match']} RCs não foram vinculadas (CNPJ não encontrado).")
                 st.session_state["reload_admin"] = True
+                db.close()
                 st.rerun()
+                return
 
     # ==============================================================
     # RELATÓRIOS
@@ -186,9 +240,6 @@ def exibir():
         df["data"] = pd.to_datetime(df["data"], errors="coerce")
         df["dias_em_aberto"] = (pd.to_datetime("today") - df["data"]).dt.days
 
-        # -----------------
-        # Resumo por usuário
-        # -----------------
         em_cotacao = df[df["status"] == STATUS_EM_COTACAO].groupby("responsavel").size().rename("Em Cotação")
         finalizadas = df[df["status"] == STATUS_FINALIZADO].groupby("responsavel").size().rename("Finalizadas")
         backlog = df[df["status"] == STATUS_BACKLOG].groupby("responsavel").size().rename("Backlog")
@@ -206,8 +257,13 @@ def exibir():
         st.subheader("🥧 RCs por Usuário")
         rcs_por_usuario = df["responsavel"].value_counts().reset_index()
         rcs_por_usuario.columns = ["Responsável", "Total RCs"]
-        fig_pizza = px.pie(rcs_por_usuario, names="Responsável", values="Total RCs", hole=0.3,
-                           title="Distribuição de RCs por Usuário")
+        fig_pizza = px.pie(
+            rcs_por_usuario,
+            names="Responsável",
+            values="Total RCs",
+            hole=0.3,
+            title="Distribuição de RCs por Usuário"
+        )
         st.plotly_chart(fig_pizza, use_container_width=True)
 
         st.subheader("📊 RCs Atrasadas (>10 dias)")
@@ -280,6 +336,8 @@ def exibir():
                 db.commit()
                 st.success("Usuário cadastrado com sucesso.")
                 st.session_state["reload_admin"] = True
+                st.rerun()
+                return
 
     usuarios = db.query(Usuario).all()
     for u in usuarios:
@@ -297,18 +355,24 @@ def exibir():
                     db.commit()
                     st.success("Usuário desativado com sucesso.")
                     st.session_state["reload_admin"] = True
+                    st.rerun()
+                    return
             else:
                 if st.button("Ativar", key=f"ativar_{u.id}"):
                     u.ativo = 1
                     db.commit()
                     st.success("Usuário ativado com sucesso.")
                     st.session_state["reload_admin"] = True
+                    st.rerun()
+                    return
         with col5:
             if st.button("Excluir", key=f"excluir_{u.id}"):
                 db.delete(u)
                 db.commit()
                 st.success("Usuário excluído com sucesso.")
                 st.session_state["reload_admin"] = True
+                st.rerun()
+                return
         with col6:
             nova_senha = st.text_input("Nova senha", key=f"senha_{u.id}", type="password")
             if st.button("Alterar Senha", key=f"altsenha_{u.id}"):
@@ -316,6 +380,9 @@ def exibir():
                     u.senha = nova_senha
                     db.commit()
                     st.success("Senha alterada com sucesso.")
+                    st.session_state["reload_admin"] = True
+                    st.rerun()
+                    return
                 else:
                     st.warning("Digite uma nova senha antes de confirmar a alteração.")
 
