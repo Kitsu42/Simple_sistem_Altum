@@ -120,7 +120,7 @@ def _carrega_df_requisicoes(db):
 def exibir():
     if st.session_state.get("reload_admin"):
         st.session_state["reload_admin"] = False
-        st.experimental_rerun()
+        st.rerun()
 
     if st.session_state.get("cargo") != "admin":
         st.error("Acesso restrito.")
@@ -158,7 +158,7 @@ def exibir():
                 novas = importar_backlog(df_backlog, db)
                 st.success(f"{novas} novas RCs foram adicionadas ao backlog.")
                 st.session_state["reload_admin"] = True
-                st.experimental_rerun()
+                st.rerun()
 
     # ==============================================================
     # RELATÓRIOS
