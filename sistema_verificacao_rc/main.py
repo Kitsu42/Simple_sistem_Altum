@@ -3,10 +3,13 @@ import sys
 import os
 import streamlit as st
 
-sys.path.append(os.path.dirname(__file__))
-
+# Garante que o diretório raiz do projeto esteja no sys.path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(BASE_DIR)
+PARENT_DIR = os.path.dirname(BASE_DIR)
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
+if PARENT_DIR not in sys.path:
+    sys.path.append(PARENT_DIR)
 
 from banco import criar_banco
 
@@ -14,7 +17,7 @@ criar_banco()
 
 from views import admin
 from auth import login
-from views import backlog, cotacao, finalizado, erros
+from views import backlog, cotacao, finalizado, analise, erros
 
 st.set_page_config(page_title="Sistema de Compras", layout="wide")
 
