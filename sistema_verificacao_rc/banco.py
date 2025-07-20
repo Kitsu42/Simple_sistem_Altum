@@ -6,6 +6,10 @@ from models import Usuario, Empresa, Filial, Requisicao
 
 engine = create_engine("sqlite:///banco.db", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+from base import Base
+from models import Usuario, Empresa, Filial, Requisicao
 
 # ---- Dados seed ----
 EMPRESAS_SEED = [
@@ -46,6 +50,19 @@ EMPRESAS_SEED = [
     },
 ]
 
+def _ensure_new_requisicao_cols(engine):
+    """Adiciona colunas novas em 'requisicoes' se ainda não existem (SQLite)."""
+    with engine.connect() as conn:
+        cols = [row[1] for row in conn.execute(text("PRAGMA table_info(requisicoes)"))]
+
+        if "data_prevista" not in cols:
+            conn.execute(text("ALTER TABLE requisicoes ADD COLUMN data_prevista DATE"))
+
+        if "solicitante" not in cols:
+            conn.execute(text("ALTER TABLE requisicoes ADD COLUMN solicitante VARCHAR"))
+
+        if "observacoes" not in cols:
+            conn.execute(text("ALTER TABLE requisicoes ADD COLUMN observacoes TEXT"))
 
 def _limpa_cnpj(cnpj: str) -> str:
     return "".join(ch for ch in str(cnpj) if ch.isdigit())
@@ -122,6 +139,7 @@ def criar_banco():
     print("👉 Criando/atualizando banco...")
     Base.metadata.create_all(bind=engine)
     _ensure_filial_column(engine)
+    _ensure_new_requisicao_cols(engine)
     session = SessionLocal()
     try:
         popular_empresas_filiais(session)
@@ -130,3 +148,4 @@ def criar_banco():
     finally:
         session.close()
     print("✅ Banco pronto.")
+

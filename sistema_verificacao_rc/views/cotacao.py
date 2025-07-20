@@ -1,43 +1,39 @@
 # views/cotacao.py
 import streamlit as st
+import pandas as pd
 from datetime import date
-import pandas as pd  # ainda usamos p/ exibir link etc., mas cálculo de dias vai em date
 from banco import SessionLocal
 from models import Requisicao
-from utils import STATUS_EM_COTACAO, STATUS_FINALIZADO, dias_em_aberto as dias_util
+from utils import STATUS_EM_COTACAO, STATUS_FINALIZADO, dias_em_aberto
 
 
-def _calc_dias(data_val):
-    """
-    Calcula dias abertos de forma segura.
-    Tenta primeiro com utilitário (que aceita vários formatos).
-    Se falhar, tenta com date.today() - data_val (caso seja date).
-    """
-    d = dias_util(data_val)
-    if d is not None:
-        return d
-    if isinstance(data_val, date):
-        return (date.today() - data_val).days
+def _fmt_date(d):
+    if not d:
+        return "—"
     try:
-        dt = pd.to_datetime(data_val, errors="coerce")
-        if pd.isna(dt):
-            return None
-        return (pd.Timestamp.today().normalize() - dt.normalize()).days
+        return pd.to_datetime(d).strftime("%d/%m/%Y")
     except Exception:
-        return None
+        return str(d)
 
-
-def _render_dias_badge(dias):
-    """Mostra badge visual conforme dias."""
+def _badge_dias(dias):
     if dias is None:
-        st.info("📅 Data não informada.")
-        return
-    if dias >= 10:
-        st.error(f"⏰ Atenção: {dias} dias em aberto.")
+        st.info("📅 Sem data de cadastro.")
+    elif dias >= 10:
+        st.error(f"⏰ {dias} dias em aberto.")
     elif dias >= 5:
         st.warning(f"⏳ Em aberto há {dias} dias.")
     else:
         st.info(f"📅 Em aberto há {dias} dias.")
+
+def _dias_para_prevista(data_prev):
+    if not data_prev:
+        return None
+    try:
+        dprev = pd.to_datetime(data_prev).date()
+    except Exception:
+        return None
+    hoje = date.today()
+    return (dprev - hoje).days
 
 
 def exibir():
@@ -53,17 +49,41 @@ def exibir():
         return
 
     for rc in rcs:
-        dias_open = _calc_dias(rc.data)
+        dias_open = dias_em_aberto(rc.data)
         empresa_nome = rc.empresa_display
         filial_nome = rc.filial_display
+        dias_para_prev = _dias_para_prevista(getattr(rc, "data_prevista", None))
 
-        with st.expander(f"RC {rc.rc} | SC {rc.solicitacao_senior} | {empresa_nome} - {filial_nome}"):
-            st.write(f"Data de criação: {rc.data}")
-            _render_dias_badge(dias_open)
+        header = f"RC {rc.rc} | SC {rc.solicitacao_senior or '—'} | {empresa_nome} - {filial_nome}"
+        with st.expander(header):
+            col1, col2, col3 = st.columns([2,2,2])
+            with col1:
+                st.write(f"**Data Cadastro:** {_fmt_date(rc.data)}")
+            with col2:
+                st.write(f"**Data Prevista:** {_fmt_date(getattr(rc, 'data_prevista', None))}")
+            with col3:
+                _badge_dias(dias_open)
+
+            if dias_para_prev is not None:
+                if dias_para_prev < 0:
+                    st.error(f"📉 {abs(dias_para_prev)} dias atrasado vs Data Prevista.")
+                elif dias_para_prev == 0:
+                    st.warning("⚠️ Vence hoje (Data Prevista).")
+                else:
+                    st.info(f"⏳ Falta(m) {dias_para_prev} dia(s) para Data Prevista.")
+
+            st.write(f"**Solicitante:** {getattr(rc, 'solicitante', '') or '—'}")
+
+            if getattr(rc, "observacoes", None):
+                with st.expander("📝 Observações do solicitante"):
+                    st.write(rc.observacoes)
+            else:
+                st.caption("Sem observações.")
 
             if rc.link:
-                st.markdown(f"[📄 Documento da SC]({rc.link})", unsafe_allow_html=True)
+                st.markdown(f"[📄 Abrir no painel]({rc.link})", unsafe_allow_html=True)
 
+            # Campos de ação
             fornecedor = st.text_input("Fornecedor", key=f"fornecedor_{rc.id}")
             st.checkbox("Cobrar orçamento", key=f"cob_{rc.id}")
             st.checkbox("OC enviada ao fornecedor", key=f"envio_{rc.id}")

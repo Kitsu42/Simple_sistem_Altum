@@ -1,66 +1,92 @@
-# views/backlog.py
 import streamlit as st
 import pandas as pd
+from sqlalchemy.orm import joinedload
 from banco import SessionLocal
 from models import Requisicao, Empresa, Filial
 from utils import STATUS_BACKLOG, STATUS_EM_COTACAO, dias_em_aberto
 
 
 def exibir():
-    st.title("Backlog de SCs")
+    st.title(\"Backlog de SCs\")
     db = SessionLocal()
 
-    # Carregar lista de empresas / filiais cadastradas
+    # --- Filtros ---
     empresas_db = db.query(Empresa).order_by(Empresa.nome).all()
-    empresa_opcoes = ["Todas"] + [e.nome for e in empresas_db]
-    empresa_sel = st.sidebar.selectbox("Empresa", empresa_opcoes, index=0)
+    empresa_opcoes = [\"Todas\"] + [e.nome for e in empresas_db]
+    empresa_sel = st.sidebar.selectbox(\"Empresa\", empresa_opcoes, index=0)
 
-    # Prepara filiais dependendo da empresa
-    filiais_opcoes = ["Todas"]
-    if empresa_sel != "Todas":
+    # Carrega filiais conforme empresa selecionada
+    filiais_opcoes = [\"Todas\"]
+    if empresa_sel != \"Todas\":
         emp_obj = next((e for e in empresas_db if e.nome == empresa_sel), None)
         if emp_obj:
             filiais_opcoes += [f.nome_exibicao for f in emp_obj.filiais]
-    filial_sel = st.sidebar.selectbox("Filial", filiais_opcoes, index=0)
+    filial_sel = st.sidebar.selectbox(\"Filial\", filiais_opcoes, index=0)
 
-    # Busca RCs em backlog
-    rcs = db.query(Requisicao).filter(Requisicao.status == STATUS_BACKLOG).all()
+    # Query base backlog
+    q = (
+        db.query(Requisicao)
+        .options(joinedload(Requisicao.filial_obj).joinedload(Filial.empresa))
+        .filter(Requisicao.status == STATUS_BACKLOG)
+    )
 
-    # Filtro por empresa/filial em memória (usando display para respeitar normalizados e legado)
-    def match_empresa(rc):
-        if empresa_sel == "Todas":
-            return True
-        return rc.empresa_display == empresa_sel
+    # Filtros aplicados
+    if empresa_sel != \"Todas\":
+        q = q.join(Requisicao.filial_obj).join(Filial.empresa).filter(Empresa.nome == empresa_sel)
+    if filial_sel != \"Todas\":
+        q = q.join(Requisicao.filial_obj).filter(Filial.nome_exibicao == filial_sel)
 
-    def match_filial(rc):
-        if filial_sel == "Todas":
-            return True
-        return rc.filial_display == filial_sel
-
-    rcs = [rc for rc in rcs if match_empresa(rc) and match_filial(rc)]
+    rcs = q.all()
 
     if not rcs:
-        st.info("Nenhuma RC no backlog.")
+        st.info(\"Nenhuma RC no backlog.\")
         db.close()
         return
+
+    from datetime import date
+
+def _fmt_date(d):
+    if not d:
+        return "—"
+    try:
+        return pd.to_datetime(d).strftime("%d/%m/%Y")
+    except Exception:
+        return str(d)
+
+def _dias_badge(dias):
+    if dias is None:
+        st.info("📅 Sem data de cadastro.")
+    elif dias >= 10:
+        st.error(f"⏰ {dias} dias em aberto.")
+    elif dias >= 5:
+        st.warning(f"⏳ Em aberto há {dias} dias.")
+    else:
+        st.info(f"📅 Em aberto há {dias} dias.")
 
     for rc in rcs:
         dias = dias_em_aberto(rc.data)
         empresa_nome = rc.empresa_display
         filial_nome = rc.filial_display
 
-        with st.expander(f"RC {rc.rc} | SC {rc.solicitacao_senior} | {empresa_nome} - {filial_nome}"):
-            st.write(f"Data de criação: {rc.data}")
-            if dias is not None:
-                if dias >= 10:
-                    st.error(f"⏰ Atenção: {dias} dias em aberto")
-                elif dias >= 5:
-                    st.warning(f"⏳ Em aberto há {dias} dias")
-                else:
-                    st.info(f"📅 Em aberto há {dias} dias")
+        with st.expander(f"RC {rc.rc} | SC {rc.solicitacao_senior or '—'} | {empresa_nome} - {filial_nome}"):
+            col1, col2, col3 = st.columns([2,2,2])
+            with col1:
+                st.write(f"**Data Cadastro:** {_fmt_date(rc.data)}")
+            with col2:
+                st.write(f"**Data Prevista:** {_fmt_date(getattr(rc, 'data_prevista', None))}")
+            with col3:
+                _dias_badge(dias)
+
+            st.write(f"**Solicitante:** {getattr(rc, 'solicitante', '') or '—'}")
+
+            if getattr(rc, "observacoes", None):
+                with st.expander("📝 Observações do solicitante"):
+                    st.write(rc.observacoes)
+            else:
+                st.caption("Sem observações.")
 
             if rc.link:
-                st.markdown(f"[📄 Documento da SC]({rc.link})", unsafe_allow_html=True)
+                st.markdown(f"[📄 Abrir no painel]({rc.link})", unsafe_allow_html=True)
 
             if st.button("Iniciar Cotação", key=f"cotar_{rc.id}"):
                 rc.status = STATUS_EM_COTACAO
@@ -68,5 +94,7 @@ def exibir():
                 db.commit()
                 st.success("RC movida para cotação")
                 st.rerun()
+                return
+
 
     db.close()

@@ -63,82 +63,68 @@ def _carrega_df_requisicoes(db):
 def importar_backlog(df: pd.DataFrame, db) -> dict:
     """
     Insere RCs do DataFrame no banco como STATUS_BACKLOG.
-    Evita duplicar RC (chave: campo 'rc').
-    Tenta vincular a Filial por CNPJ; fallback: mantém somente texto.
-    Retorna dict com contagens.
+    Preenche data_prevista, solicitante, observacoes.
+    Tenta vincular Filial pelo CNPJ.
     """
-    # Pré-carrega filiais por CNPJ (apenas dígitos)
     filiais = db.query(Filial).options(joinedload(Filial.empresa)).all()
     filiais_por_cnpj = {limpa_cnpj(f.cnpj): f for f in filiais if f.cnpj}
 
-    novos = 0
-    ja_existia = 0
-    vinculadas_filial = 0
-    sem_cnpj = 0
-    sem_match = 0
+    novos = ja_existia = vinculadas_filial = sem_cnpj = sem_match = 0
 
-    # Normaliza colunas (df veio do parse_backlog_excel)
-    # garantias: rc, solicitacao_senior, data_cadastro, filial_raw, Filial_CNPJ, Filial_Nome etc.
     cols = {c.lower(): c for c in df.columns}
-
-    def get(row, logical):
-        c = cols.get(logical.lower())
-        if c:
-            return row[c]
-        return row.get(logical, "")
+    def gc(name): return cols.get(name.lower())
 
     for _, row in df.iterrows():
-        rc_num = str(get(row, "rc")).strip()
+        rc_num = str(row[gc("rc")]).strip() if gc("rc") else ""
         if not rc_num:
             continue
 
-        # já existe?
         if db.query(Requisicao).filter_by(rc=rc_num).first():
             ja_existia += 1
             continue
 
-        sc_val = str(get(row, "solicitacao_senior") or "").strip()
+        sc_val = str(row[gc("solicitacao_senior")]).strip() if gc("solicitacao_senior") else ""
+        obs_val = str(row[gc("observacoes")]).strip() if gc("observacoes") else ""
+        solicitante_val = str(row[gc("solicitante")]).strip() if gc("solicitante") else ""
+        link_val = str(row[gc("link")]).strip() if gc("link") else ""
+        filial_raw = str(row[gc("filial_raw")]).strip() if gc("filial_raw") else ""
+        filial_nome = str(row.get("Filial_Nome", "")).strip()
+        fil_cnpj = limpa_cnpj(row.get("Filial_CNPJ", ""))
 
-        emp_txt = ""  # derivaremos da filial se encontrarmos; fica vazio/legado caso contrário
-        fil_raw = str(get(row, "filial_raw") or "").strip()
-        fil_cnpj = limpa_cnpj(row.get("Filial_CNPJ", "")) if "Filial_CNPJ" in df.columns else ""
-        fil_nome = str(row.get("Filial_Nome", "")).strip() if "Filial_Nome" in df.columns else ""
-
-        # Data de cadastro
+        # Data Cadastro
         data_cad = row.get("data_cadastro")
-        if pd.isna(data_cad):
-            data_py = None
+        if isinstance(data_cad, pd.Timestamp):
+            data_py = data_cad.date()
         else:
-            # se vier como Timestamp -> .date(); se string -> to_datetime
-            if isinstance(data_cad, pd.Timestamp):
-                data_py = data_cad.date()
-            else:
-                dt = pd.to_datetime(data_cad, errors="coerce")
-                data_py = None if pd.isna(dt) else dt.date()
+            dt = pd.to_datetime(data_cad, errors="coerce")
+            data_py = None if pd.isna(dt) else dt.date()
 
-        # Data prevista (não salva no modelo atual; guardamos em link? ignoramos)
-        # TODO: criar coluna futura
+        # Data Prevista
+        data_prev = row.get("data_prevista")
+        if isinstance(data_prev, pd.Timestamp):
+            data_prev_py = data_prev.date()
+        else:
+            dtp = pd.to_datetime(data_prev, errors="coerce")
+            data_prev_py = None if pd.isna(dtp) else dtp.date()
 
-        # Observações / Usuário (modelo ainda não tem campos; ignoramos por ora)
-        link_val = str(get(row, "link") or "").strip()
-
-        # Monta RC
         r = Requisicao(
             rc=rc_num,
             solicitacao_senior=sc_val,
-            empresa_txt=emp_txt,
-            filial_txt=fil_nome or fil_raw,
+            empresa_txt="",  # preenchido se encontrar filial
+            filial_txt=filial_nome or filial_raw,
             data=data_py,
+            data_prevista=data_prev_py,
+            solicitante=solicitante_val,
+            observacoes=obs_val,
             status=STATUS_BACKLOG,
             link=link_val,
         )
 
-        # Vincula filial se possível
         if fil_cnpj:
             f = filiais_por_cnpj.get(fil_cnpj)
             if f:
                 r.filial_id = f.id
-                r.empresa_txt = f.empresa.nome  # para histórico textual
+                r.empresa_txt = f.empresa.nome
                 vinculadas_filial += 1
             else:
                 sem_match += 1
@@ -158,7 +144,6 @@ def importar_backlog(df: pd.DataFrame, db) -> dict:
         "sem_cnpj": sem_cnpj,
         "sem_match": sem_match,
     }
-
 
 # ------------------------------------------------------------------
 # VIEW PRINCIPAL

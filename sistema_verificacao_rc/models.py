@@ -7,8 +7,8 @@ from base import Base
 class Empresa(Base):
     __tablename__ = "empresas"
     id = Column(Integer, primary_key=True)
-    codigo = Column(String, unique=True, index=True)   # Ex: '5SS'
-    nome = Column(String, nullable=False)              # Razão social completa
+    codigo = Column(String, unique=True, index=True)
+    nome = Column(String, nullable=False)
     filiais = relationship("Filial", back_populates="empresa", cascade="all, delete-orphan")
 
 
@@ -16,10 +16,10 @@ class Filial(Base):
     __tablename__ = "filiais"
     id = Column(Integer, primary_key=True)
     empresa_id = Column(Integer, ForeignKey("empresas.id"), nullable=False)
-    codigo = Column(String, index=True)                # Ex: '5SS-1'
+    codigo = Column(String, index=True)
     cnpj = Column(String, index=True)
     cidade = Column(String)
-    nome_exibicao = Column(String)                     # Ex: '5SS-1 - Aparecida'
+    nome_exibicao = Column(String)
 
     empresa = relationship("Empresa", back_populates="filiais")
     requisicoes = relationship("Requisicao", back_populates="filial_obj")
@@ -31,21 +31,23 @@ class Requisicao(Base):
     rc = Column(String)
     solicitacao_senior = Column(String)
 
-    # Campos legado (nomes de coluna originais preservados)
+    # Campos legado (mantidos para compatibilidade)
     empresa_txt = Column("empresa", String)
     filial_txt = Column("filial", String)
 
-    data = Column(Date)
+    data = Column(Date)          # Data Cadastro
+    data_prevista = Column(Date) # Data Prevista
+    solicitante = Column(String) # Solicitante
+    observacoes = Column(Text)   # Obs
+
     status = Column(String)
     responsavel = Column(String)
     link = Column(Text)
     numero_oc = Column(String)
 
-    # Novo relacionamento normalizado
     filial_id = Column(Integer, ForeignKey("filiais.id"), nullable=True)
     filial_obj = relationship("Filial", back_populates="requisicoes")
 
-    # Conveniência p/ exibir nomes padronizados mesmo sem migrar tudo
     @property
     def empresa_display(self):
         try:
@@ -69,7 +71,7 @@ class Usuario(Base):
     __tablename__ = "usuarios"
     id = Column(Integer, primary_key=True)
     nome = Column(String, unique=True, index=True, nullable=False)
-    senha = Column(String, nullable=False)  # TODO: hash
+    senha = Column(String, nullable=False)
     cargo = Column(String, nullable=False)
     ativo = Column(Integer, default=1)
 

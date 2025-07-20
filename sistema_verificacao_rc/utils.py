@@ -37,56 +37,45 @@ def parse_backlog_excel(arquivo_excel) -> pd.DataFrame:
     """
     Lê a planilha de backlog (formato RC real) e retorna DataFrame padronizado.
 
-    Colunas esperadas na origem:
-      RC
-      Solicitacao Senior
-      Data Cadastro
-      Data Prevista
-      Filial  -> "1 - 03.277.956/0001-23 - Goiania"
-      Observacoes
-      Usuario
-      Link
-
-    DataFrame de saída: colunas em minúsculo + campos derivados:
-      rc, solicitacao_senior, data_cadastro, data_prevista, filial_raw,
-      filial_cod, filial_cnpj, filial_nome, observacoes, usuario, link
+    Saída: rc, solicitacao_senior, data_cadastro, data_prevista,
+           filial_raw, filial_cod, filial_cnpj, filial_nome,
+           observacoes, solicitante, link
     """
     df = pd.read_excel(arquivo_excel, dtype=str)
 
-    # Normaliza nomes de coluna (insensível a espaços/maiúsculas)
+    # Normaliza nomes
     norm_map = {c.lower().strip(): c for c in df.columns}
+    def gc(name): return norm_map.get(name.lower())
 
-    def get_col(name):
-        return norm_map.get(name.lower())
-
-    # Extrai apenas as colunas relevantes se existirem
-    cols_keep = []
-    for logical, raw in [
-        ("rc", get_col("rc")),
-        ("Solicitacao Senior", get_col("solicitacao senior")),
-        ("Data Cadastro", get_col("data cadastro")),
-        ("Data Prevista", get_col("data prevista")),
-        ("Filial", get_col("filial")),
-        ("Observacoes", get_col("observacoes")),
-        ("Usuario", get_col("usuario")),
-        ("Link", get_col("link")),
-    ]:
-        if raw:
-            cols_keep.append(raw)
+    cols_keep = [c for c in [
+        gc("rc"),
+        gc("solicitacao senior"),
+        gc("data cadastro"),
+        gc("data prevista"),
+        gc("filial"),
+        gc("observacoes"),
+        gc("usuario"),
+        gc("link"),
+    ] if c]
     df = df[cols_keep].copy()
 
-    # Strip strings
+    # strip
     for col in df.columns:
         df[col] = df[col].astype(str).str.strip()
 
-    # Datas
-    if get_col("data cadastro"):
-        df["Data Cadastro"] = pd.to_datetime(df[get_col("data cadastro")], errors="coerce")
-    if get_col("data prevista"):
-        df["Data Prevista"] = pd.to_datetime(df[get_col("data prevista")], errors="coerce")
+    # datas
+    if gc("data cadastro"):
+        df["Data Cadastro"] = pd.to_datetime(df[gc("data cadastro")], errors="coerce")
+    else:
+        df["Data Cadastro"] = pd.NaT
 
-    # Quebra da coluna Filial
-    filial_col = get_col("filial")
+    if gc("data prevista"):
+        df["Data Prevista"] = pd.to_datetime(df[gc("data prevista")], errors="coerce")
+    else:
+        df["Data Prevista"] = pd.NaT
+
+    # filial split
+    filial_col = gc("filial")
     if filial_col:
         def split_filial(txt):
             if pd.isna(txt):
@@ -96,23 +85,36 @@ def parse_backlog_excel(arquivo_excel) -> pd.DataFrame:
             cnpj = limpa_cnpj(partes[1]) if len(partes) > 1 else None
             nome = partes[2] if len(partes) > 2 else None
             return pd.Series([cod, cnpj, nome])
-
         df[["Filial_Cod", "Filial_CNPJ", "Filial_Nome"]] = df[filial_col].apply(split_filial)
+    else:
+        df["Filial_Cod"] = None
+        df["Filial_CNPJ"] = None
+        df["Filial_Nome"] = None
 
-    # Renomeia p/ padrão
+    # renomeia
     rename_map = {}
-    if get_col("rc"): rename_map[get_col("rc")] = "rc"
-    if get_col("solicitacao senior"): rename_map[get_col("solicitacao senior")] = "solicitacao_senior"
-    if get_col("data cadastro"): rename_map[get_col("data cadastro")] = "data_cadastro"
-    if get_col("data prevista"): rename_map[get_col("data prevista")] = "data_prevista"
-    if get_col("filial"): rename_map[get_col("filial")] = "filial_raw"
-    if get_col("observacoes"): rename_map[get_col("observacoes")] = "observacoes"
-    if get_col("usuario"): rename_map[get_col("usuario")] = "usuario"
-    if get_col("link"): rename_map[get_col("link")] = "link"
+    if gc("rc"): rename_map[gc("rc")] = "rc"
+    if gc("solicitacao senior"): rename_map[gc("solicitacao senior")] = "solicitacao_senior"
+    if gc("filial"): rename_map[gc("filial")] = "filial_raw"
+    if gc("observacoes"): rename_map[gc("observacoes")] = "observacoes"
+    if gc("usuario"): rename_map[gc("usuario")] = "solicitante"  # <--- importante!
+    if gc("link"): rename_map[gc("link")] = "link"
 
     df = df.rename(columns=rename_map)
 
-    return df
+    # padroniza datas para colunas finais
+    df["data_cadastro"] = df["Data Cadastro"]
+    df["data_prevista"] = df["Data Prevista"]
+
+    # garante ordem friendly
+    out_cols = [
+        "rc", "solicitacao_senior",
+        "data_cadastro", "data_prevista",
+        "filial_raw", "Filial_Cod", "Filial_CNPJ", "Filial_Nome",
+        "observacoes", "solicitante", "link"
+    ]
+    existing = [c for c in out_cols if c in df.columns]
+    return df[existing]
 
 
 # Parse backlog XML
