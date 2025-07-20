@@ -15,6 +15,30 @@ from utils import (
     dias_em_aberto,
 )
 
+    st.header("📤 Importar Backlog (XML ou Excel)")
+    arquivo = st.file_uploader("Selecione o arquivo de backlog", type=["xml", "xlsx"])
+    if arquivo:
+        if arquivo.name.lower().endswith(".xml"):
+            try:
+                df_backlog = parse_backlog_xml(arquivo)
+                st.write(f"{len(df_backlog)} RCs encontradas no XML.")
+            except Exception as e:
+                st.error(str(e))
+                df_backlog = None
+        else:
+            try:
+                df_backlog = parse_backlog_excel(arquivo)
+                st.write(f"{len(df_backlog)} RCs encontradas no Excel.")
+            except Exception as e:
+                st.error(str(e))
+                df_backlog = None
+
+        if df_backlog is not None and not df_backlog.empty:
+            if st.button("Importar RCs para o Sistema"):
+                novas = importar_backlog(df_backlog, db)
+                st.success(f"{novas} novas RCs foram adicionadas ao backlog.")
+                st.session_state["reload_admin"] = True
+                st.experimental_rerun()
 
 def exportar_para_excel(dfs: dict) -> bytes:
     output = BytesIO()
@@ -59,6 +83,34 @@ def exibir():
 
     st.title("👥 Administração do Sistema")
     db = SessionLocal()
+
+    # =============================
+    # IMPORTAÇÃO DE BACKLOG
+    # =============================
+    st.header("📤 Importar Backlog (XML ou Excel)")
+    arquivo = st.file_uploader("Selecione o arquivo de backlog", type=["xml", "xlsx"])
+    if arquivo:
+        if arquivo.name.lower().endswith(".xml"):
+            try:
+                df_backlog = parse_backlog_xml(arquivo)
+                st.write(f"{len(df_backlog)} RCs encontradas no XML.")
+            except Exception as e:
+                st.error(str(e))
+                df_backlog = None
+        else:
+            try:
+                df_backlog = parse_backlog_excel(arquivo)
+                st.write(f"{len(df_backlog)} RCs encontradas no Excel.")
+            except Exception as e:
+                st.error(str(e))
+                df_backlog = None
+
+        if df_backlog is not None and not df_backlog.empty:
+            if st.button("Importar RCs para o Sistema"):
+                novas = importar_backlog(df_backlog, db)
+                st.success(f"{novas} novas RCs foram adicionadas ao backlog.")
+                st.session_state["reload_admin"] = True
+                st.experimental_rerun()
 
     # =============================
     # RELATÓRIOS
@@ -134,32 +186,6 @@ def exibir():
             ])
             fig_barra.update_layout(title="RCs em Atraso (>10 dias)", xaxis_tickangle=-45)
             st.plotly_chart(fig_barra, use_container_width=True)
-
-from utils import parse_backlog_xml, parse_backlog_excel, STATUS_BACKLOG
-from models import Requisicao
-
-def importar_backlog(df, db):
-    """Insere RCs do DataFrame no banco."""
-    novas = 0
-    for _, row in df.iterrows():
-        rc_existente = db.query(Requisicao).filter_by(rc=str(row["rc"])).first()
-        if rc_existente:
-            continue
-        r = Requisicao(
-            rc=str(row["rc"]),
-            solicitacao_senior=str(row.get("solicitacao_senior", "")),
-            empresa_txt=str(row.get("empresa", "")),
-            filial_txt=str(row.get("filial", "")),
-            data=row.get("data"),
-            status=STATUS_BACKLOG,
-            link=str(row.get("link", "")),
-        )
-        db.add(r)
-        novas += 1
-    if novas:
-        db.commit()
-    return novas
-
 
     # =============================
     # EXPORTAÇÃO
