@@ -13,33 +13,72 @@ from utils import (
     STATUS_EM_COTACAO,
     STATUS_FINALIZADO,
     dias_em_aberto,
+    parse_backlog_xml,
+    parse_backlog_excel,
 )
 
-    st.header("📤 Importar Backlog (XML ou Excel)")
-    arquivo = st.file_uploader("Selecione o arquivo de backlog", type=["xml", "xlsx"])
-    if arquivo:
-        if arquivo.name.lower().endswith(".xml"):
-            try:
-                df_backlog = parse_backlog_xml(arquivo)
-                st.write(f"{len(df_backlog)} RCs encontradas no XML.")
-            except Exception as e:
-                st.error(str(e))
-                df_backlog = None
+
+# ------------------------------------------------------------------
+# Importa RCs de um DataFrame (usado após upload de backlog)
+# ------------------------------------------------------------------
+def importar_backlog(df: pd.DataFrame, db) -> int:
+    """
+    Insere RCs presentes em df no banco como STATUS_BACKLOG.
+    Não duplica RC (chave: coluna 'rc').
+    """
+    # Normaliza nomes de coluna
+    df_cols = {c.lower(): c for c in df.columns}
+    def col(name):  # retorna coluna se existir
+        return df_cols.get(name, None)
+
+    novas = 0
+    for _, row in df.iterrows():
+        rc_num = str(row[col("rc")]) if col("rc") in df_cols else ""
+        if not rc_num.strip():
+            continue
+
+        # Já existe?
+        existente = db.query(Requisicao).filter_by(rc=rc_num).first()
+        if existente:
+            continue
+
+        # Extrai campos
+        sc_val   = str(row[col("solicitacao_senior")]) if col("solicitacao_senior") else str(row.get("solicitacao_senior", ""))
+        emp_val  = str(row[col("empresa")]) if col("empresa") else str(row.get("empresa", ""))
+        fil_val  = str(row[col("filial")]) if col("filial") else str(row.get("filial", ""))
+        link_val = str(row[col("link")]) if col("link") else str(row.get("link", ""))
+
+        # Data
+        if col("data") and not pd.isna(row[col("data")]):
+            data_val = pd.to_datetime(row[col("data")], errors="coerce")
         else:
-            try:
-                df_backlog = parse_backlog_excel(arquivo)
-                st.write(f"{len(df_backlog)} RCs encontradas no Excel.")
-            except Exception as e:
-                st.error(str(e))
-                df_backlog = None
+            data_val = pd.NaT
+        if pd.isna(data_val):
+            data_py = None
+        else:
+            data_py = data_val.date()
 
-        if df_backlog is not None and not df_backlog.empty:
-            if st.button("Importar RCs para o Sistema"):
-                novas = importar_backlog(df_backlog, db)
-                st.success(f"{novas} novas RCs foram adicionadas ao backlog.")
-                st.session_state["reload_admin"] = True
-                st.experimental_rerun()
+        # Cria RC
+        r = Requisicao(
+            rc=rc_num,
+            solicitacao_senior=sc_val,
+            empresa_txt=emp_val,
+            filial_txt=fil_val,
+            data=data_py,
+            status=STATUS_BACKLOG,
+            link=link_val,
+        )
+        db.add(r)
+        novas += 1
 
+    if novas:
+        db.commit()
+    return novas
+
+
+# ------------------------------------------------------------------
+# Exportador XLSX multi-aba
+# ------------------------------------------------------------------
 def exportar_para_excel(dfs: dict) -> bytes:
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
@@ -49,6 +88,9 @@ def exportar_para_excel(dfs: dict) -> bytes:
     return output.getvalue()
 
 
+# ------------------------------------------------------------------
+# DataFrame com TODAS as requisições (para exportação)
+# ------------------------------------------------------------------
 def _carrega_df_requisicoes(db):
     rcs = (
         db.query(Requisicao)
@@ -72,6 +114,9 @@ def _carrega_df_requisicoes(db):
     return pd.DataFrame(rows)
 
 
+# ------------------------------------------------------------------
+# VIEW PRINCIPAL
+# ------------------------------------------------------------------
 def exibir():
     if st.session_state.get("reload_admin"):
         st.session_state["reload_admin"] = False
@@ -84,12 +129,14 @@ def exibir():
     st.title("👥 Administração do Sistema")
     db = SessionLocal()
 
-    # =============================
-    # IMPORTAÇÃO DE BACKLOG
-    # =============================
+    # ==============================================================
+    # IMPORTAÇÃO DE BACKLOG (XML ou Excel)
+    # ==============================================================
     st.header("📤 Importar Backlog (XML ou Excel)")
     arquivo = st.file_uploader("Selecione o arquivo de backlog", type=["xml", "xlsx"])
     if arquivo:
+        # precisamos resetar o ponteiro caso pandas/ET leia o buffer
+        arquivo.seek(0)
         if arquivo.name.lower().endswith(".xml"):
             try:
                 df_backlog = parse_backlog_xml(arquivo)
@@ -106,15 +153,16 @@ def exibir():
                 df_backlog = None
 
         if df_backlog is not None and not df_backlog.empty:
+            st.dataframe(df_backlog.head(50))
             if st.button("Importar RCs para o Sistema"):
                 novas = importar_backlog(df_backlog, db)
                 st.success(f"{novas} novas RCs foram adicionadas ao backlog.")
                 st.session_state["reload_admin"] = True
                 st.experimental_rerun()
 
-    # =============================
+    # ==============================================================
     # RELATÓRIOS
-    # =============================
+    # ==============================================================
     st.header("📊 Relatórios de Atividade")
 
     requisicoes = (
@@ -187,9 +235,9 @@ def exibir():
             fig_barra.update_layout(title="RCs em Atraso (>10 dias)", xaxis_tickangle=-45)
             st.plotly_chart(fig_barra, use_container_width=True)
 
-    # =============================
+    # ==============================================================
     # EXPORTAÇÃO
-    # =============================
+    # ==============================================================
     st.markdown("---")
     st.header("📄 Exportação Geral do Banco")
 
@@ -211,9 +259,9 @@ def exibir():
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-    # =============================
+    # ==============================================================
     # GERENCIAMENTO DE USUÁRIOS
-    # =============================
+    # ==============================================================
     st.markdown("---")
     st.header("👤 Gerenciamento de Usuários")
 
@@ -270,6 +318,5 @@ def exibir():
                     st.success("Senha alterada com sucesso.")
                 else:
                     st.warning("Digite uma nova senha antes de confirmar a alteração.")
-
 
     db.close()
