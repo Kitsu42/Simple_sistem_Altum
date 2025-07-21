@@ -8,7 +8,7 @@ try:
 except ImportError:  # execução como script
     from base import Base
 
-
+empresa = Column(String, nullable=True)
 
 class Empresa(Base):
     __tablename__ = "empresas"

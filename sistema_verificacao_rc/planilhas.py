@@ -196,7 +196,6 @@ def importar_backlog(df: pd.DataFrame, session: Session) -> int:
             rc=rc_num,
             solicitacao_senior=sc_num,
             data=data_cad,
-            empresa=empresa_txt,
             filial=filial_txt,
             status="backlog",
             link=link,
