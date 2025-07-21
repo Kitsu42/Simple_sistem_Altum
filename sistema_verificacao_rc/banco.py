@@ -2,12 +2,10 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-# Import seguro: funciona tanto quando rodamos como pacote (python -m)
-# quanto quando rodamos o main como script (streamlit run caminho/main.py)
 try:
     from .base import Base
     from .models import Usuario, Empresa, Filial, Requisicao
-except ImportError:  # fallback p/ execução direta
+except ImportError: 
     from base import Base
     from models import Usuario, Empresa, Filial, Requisicao
 
