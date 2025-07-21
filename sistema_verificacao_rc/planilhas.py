@@ -118,7 +118,15 @@ def parse_backlog_excel(file) -> pd.DataFrame:
         frames.append(df)
 
     out = pd.concat(frames, ignore_index=True)
-    out["Data Cadastro"] = pd.to_datetime(out["Data Cadastro"], errors="coerce", dayfirst=True).dt.date
+    def _to_date(val):
+        try:
+            return pd.to_datetime(val, errors="coerce", dayfirst=True).date()
+        except Exception:
+            return None
+
+    out["Data Cadastro"] = out["Data Cadastro"].apply(_to_date)
+    out["Data Prevista"]  = out["Data Prevista"].apply(_to_date)
+
     out["Data Prevista"] = pd.to_datetime(out["Data Prevista"], errors="coerce", dayfirst=True).dt.date
     out["cnpj"] = out["Filial"].apply(_clean_cnpj)
     out["cidade"] = out["Filial"].apply(_extract_cidade_from_filial)
