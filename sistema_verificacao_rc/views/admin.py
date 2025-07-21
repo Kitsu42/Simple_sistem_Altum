@@ -2,24 +2,24 @@
 import streamlit as st
 import pandas as pd
 from banco import SessionLocal
-from models import Usuario, Requisicao, Empresa, Filial
-from sqlalchemy.orm import joinedload
-from datetime import datetime, timedelta
+from models import Usuario, Requisicao  # usando os campos texto (empresa/filial)
+from datetime import datetime
 from io import BytesIO
 import plotly.express as px
 import plotly.graph_objects as go
-from sistema_verificacao_rc.planilhas import parse_backlog_excel, importar_backlog
+
+# planilhas helpers (use caminho relativo flexível)
+try:
+    from sistema_verificacao_rc.planilhas import parse_backlog_excel, importar_backlog
+except ImportError:
+    from planilhas import parse_backlog_excel, importar_backlog
 
 from utils import (
     STATUS_BACKLOG,
     STATUS_EM_COTACAO,
     STATUS_FINALIZADO,
     dias_em_aberto,
-    parse_backlog_xml,
-    parse_backlog_excel,
-    limpa_cnpj,
 )
-
 
 # ------------------------------------------------------------------
 # Exportador XLSX multi-aba
@@ -28,28 +28,25 @@ def exportar_para_excel(dfs: dict) -> bytes:
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         for nome_aba, df in dfs.items():
-            df_clean = df.applymap(lambda x: str(x).replace("\n", " ").strip() if isinstance(x, str) else x)
+            df_clean = df.applymap(
+                lambda x: str(x).replace("\n", " ").strip() if isinstance(x, str) else x
+            )
             df_clean.to_excel(writer, sheet_name=nome_aba, index=False)
     return output.getvalue()
-
 
 # ------------------------------------------------------------------
 # DataFrame com TODAS as requisições (para exportação)
 # ------------------------------------------------------------------
 def _carrega_df_requisicoes(db):
-    rcs = (
-        db.query(Requisicao)
-        .options(joinedload(Requisicao.filial_obj).joinedload(Filial.empresa))
-        .all()
-    )
+    rcs = db.query(Requisicao).all()
     rows = []
     for r in rcs:
         rows.append({
             "ID": r.id,
             "RC": r.rc,
             "Solicitação Senior": r.solicitacao_senior,
-            "Empresa": r.empresa_display,
-            "Filial": r.filial_display,
+            "Empresa": r.empresa,
+            "Filial": r.filial,
             "Data": r.data,
             "Status": r.status,
             "Responsável": r.responsavel,
@@ -57,25 +54,6 @@ def _carrega_df_requisicoes(db):
             "Número OC": r.numero_oc,
         })
     return pd.DataFrame(rows)
-
-
-# ------------------------------------------------------------------
-# Importa RCs do DataFrame de backlog
-# ------------------------------------------------------------------
-st.header("📤 Importar Backlog (Excel)")
-arquivo = st.file_uploader("Selecione o arquivo de backlog", type=["xlsx"])
-if arquivo:
-    try:
-        df_backlog = parse_backlog_excel(arquivo)
-        st.write(f"{len(df_backlog)} RC(s) encontradas no arquivo.")
-        st.dataframe(df_backlog.head())
-        if st.button("Importar RCs para o Sistema"):
-            novas = importar_backlog(df_backlog, db)
-            st.success(f"{novas} novas RC(s) adicionadas ao backlog.")
-            st.experimental_rerun()
-    except Exception as e:
-        st.error(f"Falha ao importar: {e}")
-
 
 # ------------------------------------------------------------------
 # VIEW PRINCIPAL
@@ -95,53 +73,37 @@ def exibir():
     db = SessionLocal()
 
     # ==============================================================
-    # IMPORTAÇÃO DE BACKLOG (XML ou Excel)
+    # IMPORTAÇÃO DE BACKLOG
     # ==============================================================
-    st.header("📤 Importar Backlog (XML ou Excel)")
-    arquivo = st.file_uploader("Selecione o arquivo de backlog", type=["xml", "xlsx"])
-    df_backlog = None
+    st.header("📤 Importar Backlog")
+    arquivo = st.file_uploader("Selecione o arquivo de backlog", type=["xlsx"])
     if arquivo:
-        arquivo.seek(0)
-        if arquivo.name.lower().endswith(".xml"):
-            try:
-                df_backlog = parse_backlog_xml(arquivo)
-                st.write(f"{len(df_backlog)} RCs encontradas no XML.")
-            except Exception as e:
-                st.error(str(e))
-        else:
-            try:
-                df_backlog = parse_backlog_excel(arquivo)
-                st.write(f"{len(df_backlog)} RCs encontradas no Excel.")
-            except Exception as e:
-                st.error(str(e))
-
-        if df_backlog is not None and not df_backlog.empty:
+        try:
+            arquivo.seek(0)
+            df_backlog = parse_backlog_excel(arquivo)
+            st.write(f"{len(df_backlog)} RC(s) encontradas no arquivo.")
             st.dataframe(df_backlog.head(40))
+
             if st.button("Importar RCs para o Sistema"):
-                stats = importar_backlog(df_backlog, db)
+                total_linhas = len(df_backlog)
+                novas = importar_backlog(df_backlog, db)
+                ignoradas = total_linhas - novas
                 st.success(
-                    f"{stats['novos']} novas RCs inseridas. "
-                    f"{stats['ja_existia']} ignoradas (já existiam). "
-                    f"{stats['vinculadas_filial']} vinculadas à filial cadastral."
+                    f"Importação concluída: {novas} nova(s) RC(s) inserida(s); {ignoradas} ignorada(s)."
                 )
-                if stats["sem_match"]:
-                    st.warning(f"{stats['sem_match']} RCs não foram vinculadas (CNPJ não encontrado).")
                 st.session_state["reload_admin"] = True
                 db.close()
                 st.rerun()
                 return
+        except Exception as e:
+            st.error(f"Falha ao importar: {e}")
 
     # ==============================================================
     # RELATÓRIOS
     # ==============================================================
     st.header("📊 Relatórios de Atividade")
 
-    requisicoes = (
-        db.query(Requisicao)
-        .options(joinedload(Requisicao.filial_obj).joinedload(Filial.empresa))
-        .filter(Requisicao.responsavel != None)
-        .all()
-    )
+    requisicoes = db.query(Requisicao).filter(Requisicao.responsavel != None).all()
 
     if not requisicoes:
         st.info("Nenhuma RC registrada com responsável definido.")
@@ -150,8 +112,8 @@ def exibir():
             "responsavel": r.responsavel,
             "status": r.status,
             "data": r.data,
-            "empresa": r.empresa_display,
-            "filial": r.filial_display,
+            "empresa": r.empresa,
+            "filial": r.filial,
         } for r in requisicoes])
 
         df["data"] = pd.to_datetime(df["data"], errors="coerce")
@@ -160,7 +122,10 @@ def exibir():
         em_cotacao = df[df["status"] == STATUS_EM_COTACAO].groupby("responsavel").size().rename("Em Cotação")
         finalizadas = df[df["status"] == STATUS_FINALIZADO].groupby("responsavel").size().rename("Finalizadas")
         backlog = df[df["status"] == STATUS_BACKLOG].groupby("responsavel").size().rename("Backlog")
-        em_cot_prazo = df[(df["status"] == STATUS_EM_COTACAO) & (df["dias_em_aberto"] <= 10)].groupby("responsavel").size().rename("Em cotação - no prazo")
+        em_cot_prazo = (
+            df[(df["status"] == STATUS_EM_COTACAO) & (df["dias_em_aberto"] <= 10)]
+            .groupby("responsavel").size().rename("Em cotação - no prazo")
+        )
 
         resumo = pd.concat([backlog, em_cotacao, em_cot_prazo, finalizadas], axis=1).fillna(0).astype(int)
         resumo = resumo.sort_values(by=["Finalizadas"], ascending=False)
