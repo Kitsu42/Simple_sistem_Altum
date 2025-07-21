@@ -1,19 +1,23 @@
 # views/admin.py
 import streamlit as st
 import pandas as pd
-from banco import SessionLocal
-from models import Usuario, Requisicao  # usando os campos texto (empresa/filial)
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO
 import plotly.express as px
 import plotly.graph_objects as go
+from sqlalchemy.orm import joinedload
 
-# planilhas helpers (use caminho relativo flexível)
+# Imports do app
+from banco import SessionLocal
+from models import Usuario, Requisicao, Empresa, Filial
+
+# Import robusto do parser de planilhas (pacote ou script)
 try:
-    from sistema_verificacao_rc.planilhas import parse_backlog_excel, importar_backlog
+    from sistema_verificacao_rc.planilhas import parse_backlog_excel, importar_backlog, as_display_br
 except ImportError:
-    from planilhas import parse_backlog_excel, importar_backlog
+    from planilhas import parse_backlog_excel, importar_backlog, as_display_br
 
+# Status helpers
 from utils import (
     STATUS_BACKLOG,
     STATUS_EM_COTACAO,
@@ -25,110 +29,147 @@ from utils import (
 # Exportador XLSX multi-aba
 # ------------------------------------------------------------------
 def exportar_para_excel(dfs: dict) -> bytes:
+    """
+    Recebe dict {nome_aba: DataFrame} e devolve bytes de um arquivo .xlsx
+    com cada DataFrame em uma aba.
+    """
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         for nome_aba, df in dfs.items():
+            # Limpa strings para não quebrar linhas
             df_clean = df.applymap(
                 lambda x: str(x).replace("\n", " ").strip() if isinstance(x, str) else x
             )
             df_clean.to_excel(writer, sheet_name=nome_aba, index=False)
     return output.getvalue()
 
+
 # ------------------------------------------------------------------
 # DataFrame com TODAS as requisições (para exportação)
 # ------------------------------------------------------------------
 def _carrega_df_requisicoes(db):
-    rcs = db.query(Requisicao).all()
+    """
+    Carrega todas as RCs do banco e devolve DataFrame pronto para exportação.
+    Inclui campos novos (data_prevista, solicitante, observacoes) se existirem.
+    """
+    rcs = (
+        db.query(Requisicao)
+        .options(joinedload(Requisicao.filial_obj).joinedload(Filial.empresa))
+        .all()
+    )
     rows = []
     for r in rcs:
         rows.append({
             "ID": r.id,
             "RC": r.rc,
             "Solicitação Senior": r.solicitacao_senior,
-            "Empresa": r.empresa,
-            "Filial": r.filial,
-            "Data": r.data,
+            "Empresa": r.empresa_display,   # <-- property segura
+            "Filial": r.filial_display,     # <-- property segura
+            "Data Cadastro": r.data,
+            "Data Prevista": getattr(r, "data_prevista", None),
+            "Solicitante": getattr(r, "solicitante", None),
+            "Observações": getattr(r, "observacoes", None),
             "Status": r.status,
             "Responsável": r.responsavel,
             "Link": r.link,
             "Número OC": r.numero_oc,
         })
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+
+    # Formatação opcional BR para exportar — mantenho datas em ISO para Excel
+    # df = as_display_br(df, cols=("Data Cadastro", "Data Prevista"))
+
+    return df
+
 
 # ------------------------------------------------------------------
 # VIEW PRINCIPAL
 # ------------------------------------------------------------------
 def exibir():
-    # reload externo (de import ou ações)
+    # --------------------------------------------------------------
+    # Proteção de acesso
+    # --------------------------------------------------------------
+    if st.session_state.get("cargo") != "admin":
+        st.error("Acesso restrito.")
+        return
+
+    # --------------------------------------------------------------
+    # Rerun forçado pós-ação
+    # --------------------------------------------------------------
     if st.session_state.get("reload_admin"):
         st.session_state["reload_admin"] = False
         st.rerun()
-        return
-
-    if st.session_state.get("cargo") != "admin":
-        st.error("Acesso restrito.")
         return
 
     st.title("👥 Administração do Sistema")
     db = SessionLocal()
 
     # ==============================================================
-    # IMPORTAÇÃO DE BACKLOG
+    # IMPORTAÇÃO DE BACKLOG (Excel)
     # ==============================================================
-    st.header("📤 Importar Backlog")
+    st.header("📤 Importar Backlog (Excel)")
     arquivo = st.file_uploader("Selecione o arquivo de backlog", type=["xlsx"])
+    df_backlog = None
     if arquivo:
+        arquivo.seek(0)
         try:
-            arquivo.seek(0)
             df_backlog = parse_backlog_excel(arquivo)
             st.write(f"{len(df_backlog)} RC(s) encontradas no arquivo.")
-            st.dataframe(df_backlog.head(40))
+            # Preview formatado BR para o usuário
+            st.dataframe(as_display_br(df_backlog).head(40))
+        except Exception as e:
+            st.error(f"Falha ao ler o arquivo: {e}")
+            df_backlog = None
 
+        if df_backlog is not None and not df_backlog.empty:
             if st.button("Importar RCs para o Sistema"):
-                total_linhas = len(df_backlog)
-                novas = importar_backlog(df_backlog, db)
-                ignoradas = total_linhas - novas
-                st.success(
-                    f"Importação concluída: {novas} nova(s) RC(s) inserida(s); {ignoradas} ignorada(s)."
-                )
+                novos = importar_backlog(df_backlog, db)  # retorna int
+                st.success(f"{novos} nova(s) RC(s) adicionadas ao backlog.")
                 st.session_state["reload_admin"] = True
                 db.close()
                 st.rerun()
                 return
-        except Exception as e:
-            st.error(f"Falha ao importar: {e}")
 
     # ==============================================================
-    # RELATÓRIOS
+    # RELATÓRIOS DE ATIVIDADE
     # ==============================================================
     st.header("📊 Relatórios de Atividade")
 
-    requisicoes = db.query(Requisicao).filter(Requisicao.responsavel != None).all()
+    requisicoes = (
+        db.query(Requisicao)
+        .options(joinedload(Requisicao.filial_obj).joinedload(Filial.empresa))
+        .filter(Requisicao.responsavel != None)  # noqa: E711
+        .all()
+    )
 
     if not requisicoes:
         st.info("Nenhuma RC registrada com responsável definido.")
     else:
+        # Monta DF base para análise
         df = pd.DataFrame([{
             "responsavel": r.responsavel,
             "status": r.status,
             "data": r.data,
-            "empresa": r.empresa,
-            "filial": r.filial,
+            "empresa": r.empresa_display,   # CORRIGIDO
+            "filial": r.filial_display,     # CORRIGIDO
         } for r in requisicoes])
 
-        df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce")
+        # Converte data (safe BR)
+        df["data"] = pd.to_datetime(df["data"], errors="coerce", dayfirst=True)
         df["dias_em_aberto"] = (pd.Timestamp.today().normalize() - df["data"]).dt.days
 
-
+        # Agregações
         em_cotacao = df[df["status"] == STATUS_EM_COTACAO].groupby("responsavel").size().rename("Em Cotação")
         finalizadas = df[df["status"] == STATUS_FINALIZADO].groupby("responsavel").size().rename("Finalizadas")
-        backlog = df[df["status"] == STATUS_BACKLOG].groupby("responsavel").size().rename("Backlog")
+        backlog_counts = df[df["status"] == STATUS_BACKLOG].groupby("responsavel").size().rename("Backlog")
         em_cot_prazo = (
             df[(df["status"] == STATUS_EM_COTACAO) & (df["dias_em_aberto"] <= 10)]
-            .groupby("responsavel").size().rename("Em cotação - no prazo")
+            .groupby("responsavel")
+            .size()
+            .rename("Em cotação - no prazo")
         )
 
-        resumo = pd.concat([backlog, em_cotacao, em_cot_prazo, finalizadas], axis=1).fillna(0).astype(int)
+        resumo = pd.concat([backlog_counts, em_cotacao, em_cot_prazo, finalizadas], axis=1).fillna(0).astype(int)
         resumo = resumo.sort_values(by=["Finalizadas"], ascending=False)
 
         st.subheader("📌 Resumo por usuário")
