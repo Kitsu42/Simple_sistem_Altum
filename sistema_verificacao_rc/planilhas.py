@@ -27,16 +27,15 @@ Principais pontos sobre datas:
 Use as_display_br(df) para gerar *strings* formatadas (DD/MM/AAAA) apenas para exibição.
 """
 
+from __future__ import annotations
+
 import pandas as pd
 import re
 import datetime as dt
+import numpy as np
 from typing import Optional, Iterable, Mapping
-
-try:  # pacote
-    from .models import Requisicao
-except ImportError:  # script
-    from models import Requisicao
-
+from sqlalchemy.orm import Session
+from models import Requisicao
 
 # ------------------------------------------------------------------
 # Excel date system base (Windows 1900 system). Pandas usa 1899-12-30
