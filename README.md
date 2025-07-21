@@ -2,6 +2,7 @@
 
 
 # Sistema de verificação de RC
+(Desatualizado, reescrever depois)
 Funções esperadas:
 
     [ ] - adcionar tela de login separado.

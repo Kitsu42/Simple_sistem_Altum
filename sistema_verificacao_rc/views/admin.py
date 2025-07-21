@@ -116,8 +116,9 @@ def exibir():
             "filial": r.filial,
         } for r in requisicoes])
 
-        df["data"] = pd.to_datetime(df["data"], errors="coerce")
-        df["dias_em_aberto"] = (pd.to_datetime("today") - df["data"]).dt.days
+        df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce")
+        df["dias_em_aberto"] = (pd.Timestamp.today().normalize() - df["data"]).dt.days
+
 
         em_cotacao = df[df["status"] == STATUS_EM_COTACAO].groupby("responsavel").size().rename("Em Cotação")
         finalizadas = df[df["status"] == STATUS_FINALIZADO].groupby("responsavel").size().rename("Finalizadas")

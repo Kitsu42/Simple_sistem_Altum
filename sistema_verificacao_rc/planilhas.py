@@ -124,8 +124,19 @@ def parse_backlog_excel(file) -> pd.DataFrame:
         except Exception:
             return None
 
-    out["Data Cadastro"] = out["Data Cadastro"].apply(_to_date)
-    out["Data Prevista"]  = out["Data Prevista"].apply(_to_date)
+    def _parse_date_br(value):
+        """
+        Converte datas para datetime.date com suporte ao formato DD/MM/YYYY.
+        Funciona para strings, pandas.Timestamp ou números serializados do Excel.
+        """
+        if pd.isna(value):
+            return None
+        if isinstance(value, (pd.Timestamp, datetime.date)):
+            return value.date() if hasattr(value, "date") else value
+        try:
+            return pd.to_datetime(str(value), dayfirst=True, errors="coerce").date()
+        except Exception:
+            return None
 
     out["Data Prevista"] = pd.to_datetime(out["Data Prevista"], errors="coerce", dayfirst=True).dt.date
     out["cnpj"] = out["Filial"].apply(_clean_cnpj)
@@ -138,9 +149,10 @@ def parse_backlog_excel(file) -> pd.DataFrame:
 # ------------------------------------------------------------------
 def importar_backlog(df: pd.DataFrame, session: Session) -> int:
     """
-    Importa RCs para o banco usando o modelo Requisicao *atual*.
-    Campos persistidos: rc, solicitacao_senior, data, empresa (texto), filial (texto), status, link.
-    Observações, Usuario, Data Prevista são ignorados por falta de coluna no schema.
+    Importa RCs para o banco usando o modelo Requisicao (schema novo / compatível).
+    Campos persistidos:
+      rc, solicitacao_senior, data, data_prevista, solicitante, observacoes,
+      empresa_txt, filial_txt, status, link.
     """
     import datetime
 
@@ -157,11 +169,11 @@ def importar_backlog(df: pd.DataFrame, session: Session) -> int:
         rc_num = _clean_str(row.get("RC"))
         sc_num = _clean_str(row.get("SC"))
 
-        # Ignora linhas sem RC e sem SC
+        # Ignora linha vazia
         if not rc_num and not sc_num:
             continue
 
-        # Datas
+        # datas
         data_cad = row.get("Data Cadastro")
         data_prev = row.get("Data Prevista")
 
@@ -173,16 +185,14 @@ def importar_backlog(df: pd.DataFrame, session: Session) -> int:
         if data_cad is None or pd.isna(data_cad):
             data_cad = datetime.date.today()
 
+        # texto
         filial_txt = _clean_str(row.get("Filial"))
-        # empresa texto: a partir da cidade (melhoraremos depois ao mapear com tabela Filial/Empresa)
-        empresa_txt = None
-        if filial_txt:
-            # heurística: pega trecho antes do primeiro " - " como código, mas por enquanto None
-            pass
-
+        empresa_txt = None  # pode tentar heurística futura
+        obs = _clean_str(row.get("Observacoes"))
+        solicitante = _clean_str(row.get("Usuario"))
         link = _clean_str(row.get("Link"))
 
-        # Dedup: SC primeiro; se não houver, RC
+        # Dedup
         q = session.query(Requisicao)
         if sc_num:
             q = q.filter(Requisicao.solicitacao_senior == sc_num)
@@ -196,7 +206,11 @@ def importar_backlog(df: pd.DataFrame, session: Session) -> int:
             rc=rc_num,
             solicitacao_senior=sc_num,
             data=data_cad,
-            filial=filial_txt,
+            data_prevista=data_prev,
+            solicitante=solicitante,
+            observacoes=obs,
+            empresa_txt=empresa_txt,
+            filial_txt=filial_txt,
             status="backlog",
             link=link,
         )

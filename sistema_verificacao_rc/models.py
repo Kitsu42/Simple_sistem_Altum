@@ -2,20 +2,23 @@
 from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey
 from sqlalchemy.orm import relationship
 
-# Import compatível com pacote (python -m) E script (streamlit run)
+# Import compatível para execução como pacote ou script
 try:
     from .base import Base
-except ImportError:  # execução como script
+except ImportError:
     from base import Base
 
-empresa = Column(String, nullable=True)
 
 class Empresa(Base):
     __tablename__ = "empresas"
     id = Column(Integer, primary_key=True)
     codigo = Column(String, unique=True, index=True)
     nome = Column(String, nullable=False)
-    filiais = relationship("Filial", back_populates="empresa", cascade="all, delete-orphan")
+    filiais = relationship(
+        "Filial",
+        back_populates="empresa",
+        cascade="all, delete-orphan",
+    )
 
 
 class Filial(Base):
@@ -37,39 +40,35 @@ class Requisicao(Base):
     rc = Column(String)
     solicitacao_senior = Column(String)
 
-    # Campos legado (mantidos para compatibilidade)
-    empresa_txt = Column("empresa", String)
-    filial_txt = Column("filial", String)
+    # Campos legado (nomes de coluna física preservados)
+    empresa_txt = Column("empresa", String)  # coluna 'empresa' na tabela
+    filial_txt = Column("filial", String)    # coluna 'filial' na tabela
 
-    data = Column(Date)          # Data Cadastro
-    data_prevista = Column(Date) # Data Prevista
-    solicitante = Column(String) # Solicitante
-    observacoes = Column(Text)   # Obs
+    # Novos campos
+    data = Column(Date)            # Data Cadastro
+    data_prevista = Column(Date)   # Data Prevista
+    solicitante = Column(String)   # Usuário/solicitante
+    observacoes = Column(Text)     # Observações da RC
 
     status = Column(String)
     responsavel = Column(String)
     link = Column(Text)
     numero_oc = Column(String)
 
+    # Normalização futura (relacionamento)
     filial_id = Column(Integer, ForeignKey("filiais.id"), nullable=True)
     filial_obj = relationship("Filial", back_populates="requisicoes")
 
     @property
     def empresa_display(self):
-        try:
-            if self.filial_obj and self.filial_obj.empresa:
-                return self.filial_obj.empresa.nome
-        except Exception:
-            pass
+        if self.filial_obj and self.filial_obj.empresa:
+            return self.filial_obj.empresa.nome
         return self.empresa_txt
 
     @property
     def filial_display(self):
-        try:
-            if self.filial_obj:
-                return self.filial_obj.nome_exibicao or self.filial_obj.cidade
-        except Exception:
-            pass
+        if self.filial_obj:
+            return self.filial_obj.nome_exibicao or self.filial_obj.cidade
         return self.filial_txt
 
 
