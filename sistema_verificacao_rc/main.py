@@ -21,7 +21,7 @@ st.set_page_config(page_title="Sistema de Compras", layout="wide")
 # ---------------------------------------------------------
 # Banco / criação de schema
 # ---------------------------------------------------------
-from banco import criar_banco  # script-style
+from banco import criar_banco
 criar_banco()
 
 # ---------------------------------------------------------

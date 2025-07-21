@@ -105,6 +105,7 @@ def exibir():
             st.checkbox("OC enviada ao fornecedor", key=f"envio_{rc.id}")
             st.checkbox("NF Recebida", key=f"nf_{rc.id}")
             st.checkbox("NF e Boleto anexados", key=f"anxBNF_{rc.id}")
+            obsevacao = st.text_area("Notas:", key=f"obs{rc.id}")
 
             numero_oc = st.text_input("Numero da OC", key=f"oc_{rc.id}")
 
