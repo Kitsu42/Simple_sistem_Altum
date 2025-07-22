@@ -60,19 +60,18 @@ def _carrega_df_requisicoes(db):
     rows = []
     for r in rcs:
         rows.append({
-            "ID": r.id,
+            "Status": r.status,
             "RC": r.rc,
             "Solicitação Senior": r.solicitacao_senior,
+            "Responsável": r.responsavel,
+            "Número OC": r.numero_oc,            
             "Empresa": r.empresa_display,   # <-- property segura
             "Filial": r.filial_display,     # <-- property segura
             "Data Cadastro": r.data,
             "Data Prevista": getattr(r, "data_prevista", None),
             "Solicitante": getattr(r, "solicitante", None),
             "Observações": getattr(r, "observacoes", None),
-            "Status": r.status,
-            "Responsável": r.responsavel,
             "Link": r.link,
-            "Número OC": r.numero_oc,
         })
     df = pd.DataFrame(rows)
 
