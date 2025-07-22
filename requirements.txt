@@ -1,0 +1,18 @@
+# Web UI
+streamlit==1.37.0
+
+# Banco e migrações
+SQLAlchemy==2.0.31
+alembic==1.13.2
+psycopg2-binary==2.9.9   # Driver PostgreSQL
+
+# Dados
+pandas==2.2.2
+openpyxl==3.1.5
+
+# Utilidades
+python-dotenv==1.0.1
+requests==2.32.3
+
+# Senhas (para futura melhoria)
+passlib[bcrypt]==1.7.4

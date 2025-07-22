@@ -1,66 +1,45 @@
-# Simple_sistem_Altum
-
-
-# Sistema de verificação de RC
-(Desatualizado, reescrever depois)
-Funções esperadas:
-
-    [ ] - adcionar tela de login separado.
-    [X] - Ler as planilhas do backlog.
-    [X] - Separar as requisições.
-    [X] - Mostrar cada requisição como um card que deve apresentar n° de SC, quantidade de linhas, data de criação da SC e a quanto tempo está aberta.
-    [ ] - Imprimir relatorios do estado de cada SC e guardar um historico.
-    [X] - Adicionar quem está cuidando de cada RC.
-    [X] - Adicionar sistema de login
-    [ ] - Adicionar sistema de cotação
-    [X] - Adicionar paginas de cotação, em espera e concluidas
-    [ ] - Gerar sistema de prazo para cotações e gerar oc
-    [X] - Organizar por filial e empresa
-    [ ] - Tornar obrigatorio declarar o N° de OC para concluir a RC
-    [ ] - Adcionar possibilidade de filtro que não atualize para todos ao mesmo tempo
-    [ ] - Pagina de cotação deve conter
-        [ ] - Lembrete de anexar NF
-        [ ] - Lembrete de cobra fornecedor
-        [ ] - Lembrete de enviar OC para o fornecedor
-        [ ] - Informações do fornecedor (nome; numero; empresa)
-
-Futuras funções:
-
-    [ ] - Conseguir acessar o painel.
-    [ ] - Verificar filial e retornar RCs com filial errada.
-    [ ] - Aba de RCs em cotação.
-    [ ] - Exibir o estado em que a RC está no painel.
-    [ ] - Puchar o backlog direto do Senior
-
-Estrutura:
-
-        sistema_verificacao_rc/
-    │
-    ├── main.py                      # Entrada principal (controla rotas e sessão)
-    ├── banco.py                     # Configuração do SQLAlchemy
-    ├── base.py                      # Declarative Base do SQLAlchemy
-    ├── models.py                    # Modelos de dados (ORM)
-    ├── planilhas.py                 # Manipulação e leitura de planilhas Excel
-    ├── utils.py                     # Funções auxiliares (ex: datas, conversões)
-    ├── requirements.txt             # Dependências do projeto
-    ├── README.md                    # Documentação básica
-    │
-    ├── auth/                        
-    │   └── login.py                 # Lógica de autenticação e hash/token
-    │
-    ├── data/
-    │   └── uploads/                 # Planilhas ou arquivos XML enviados
-    │
-    ├── reports/
-    │   ├── gerar_pdf.py             # Função de gerar relatórios em PDF
-    │   ├── gerar_xml.py             # Função de gerar relatórios em XML
-    │
-    └── views/
-        ├── __init__.py              # Necessário para importar como pacote
-        ├── acesso.py                # Página de login (exibe formulário de login)
-        ├── backlog.py               # RCs recebidas (Backlog)
-        ├── cotacao.py               # RCs em cotação
-        ├── finalizado.py            # RCs finalizadas
-        ├── analise.py               # OCs aguardando aprovação
-        ├── erros.py                 # OCs com erro (XML externo)
-        └── admin.py                 # Página exclusiva de administração
+project_root/
+│
+├── main.py                  # Ponto de entrada principal
+├── config.py                # Configurações globais (DB, paths, etc.)
+├── requirements.txt         # Dependências
+│
+├── database/                # Tudo relacionado ao banco de dados
+│   ├── __init__.py
+│   ├── models.py            # Classes/entidades SQLAlchemy
+│   ├── banco.py             # Conexão e inicialização
+│   ├── seed.py              # Dados iniciais
+│   └── migrations/          # Futuro: scripts Alembic
+│
+├── data_handlers/           # Entrada/saída de dados (Excel, relatórios)
+│   ├── __init__.py
+│   ├── excel_parser.py      # Leitura e parsing de planilhas
+│   ├── report_generator.py  # Geração de relatórios (PDF/Excel)
+│   └── exporters/           # Exportações específicas
+│
+├── views/                   # Telas e lógica de interface
+│   ├── __init__.py
+│   ├── common/              # Telas compartilhadas (login, dashboard)
+│   │   ├── login_view.py
+│   │   └── dashboard.py
+│   ├── comprador/           # Telas específicas do comprador
+│   │   ├── backlog.py
+│   │   ├── cotacao.py
+│   │   └── historico.py
+│   └── admin/               # Telas específicas do admin
+│       ├── painel_admin.py
+│       ├── gestao_rc.py
+│       └── relatorios.py
+│
+├── services/                # Lógica de negócio e regras do sistema
+│   ├── __init__.py
+│   ├── rc_service.py        # Controle de RC (status, atribuições)
+│   ├── auth_service.py      # Controle de autenticação
+│   ├── notification_service.py  # Alertas/Admin
+│   └── logs_service.py      # Log de ações
+│
+└── utils/                   # Funções auxiliares
+    ├── __init__.py
+    ├── constants.py         # Constantes globais
+    ├── formatters.py        # Funções de formatação
+    └── helpers.py           # Funções utilitárias genéricas
