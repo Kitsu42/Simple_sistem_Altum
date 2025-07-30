@@ -1,10 +1,10 @@
-import os
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "postgresql+psycopg2://postgres:senha@localhost:5432/compras"
-    )
+    DATABASE_URL: str
+    PROJECT_NAME: str = "SimpleSystemAltum"
+
+    class Config:
+        env_file = ".env"
 
 settings = Settings()
