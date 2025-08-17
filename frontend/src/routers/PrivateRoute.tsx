@@ -1,14 +1,13 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { getToken } from "../services/auth";
 
-interface PrivateRouteProps {
-  children: JSX.Element;
+interface Props {
+  children: React.ReactNode;
 }
 
-const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
-  const token = getToken();
-  return token ? children : <Navigate to="/login" />;
+const PrivateRoute: React.FC<Props> = ({ children }) => {
+  const token = localStorage.getItem("token");
+  return token ? <>{children}</> : <Navigate to="/" replace />;
 };
 
 export default PrivateRoute;

@@ -1,33 +1,32 @@
 import React from "react";
-import { createBrowserRouter } from "react-router-dom";
-import PrivateRoute from "./PrivateRoute";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import NotFound from "../pages/NotFound";
-import Layout from "../components/Layout";
+import PrivateRoute from "./PrivateRoute";
 
-export const router = createBrowserRouter([
-  {
-    path: "/login",
-    element: <Login />,
-  },
-  {
-    path: "/",
-    element: <PrivateRoute />,
-    children: [
-      {
-        element: <Layout />,
-        children: [
-          {
-            path: "",
-            element: <Dashboard />,
-          },
-          {
-            path: "*",
-            element: <NotFound />,
-          },
-        ],
-      },
-    ],
-  },
-]);
+const AppRouter: React.FC = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Rota pública */}
+        <Route path="/" element={<Login />} />
+
+        {/* Rotas privadas */}
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute>
+              <Dashboard />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Fallback */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
+
+export default AppRouter;

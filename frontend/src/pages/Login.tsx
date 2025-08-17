@@ -1,68 +1,63 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { login } from "../services/auth";
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-
-    try {
-      await login(username, password);
-      navigate("/dashboard"); // redireciona após login
-    } catch (err) {
-      setError("Usuário ou senha incorretos.");
-    }
+    console.log("Login:", { email, password });
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#082032]">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-[#1a1a40] p-8 rounded-2xl shadow-lg w-full max-w-sm"
-      >
-        <h2 className="text-2xl font-bold text-white mb-6 text-center">Login</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#082032] to-[#1a1a40]">
+      <div className="bg-[#1a1a40] w-full max-w-md rounded-2xl shadow-2xl p-8">
+        <h2 className="text-3xl font-bold text-center text-white mb-2">
+          LOGIN
+        </h2>
+        <p className="text-gray-400 text-center mb-8">
+          Please enter your login and password!
+        </p>
 
-        {error && (
-          <div className="bg-red-500 text-white p-2 rounded mb-4 text-center">
-            {error}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {/* Email */}
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Email</label>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg bg-[#082032] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#60d4ea]"
+            />
           </div>
-        )}
 
-        <div className="mb-4">
-          <label className="block text-white mb-2">Usuário</label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full p-2 rounded bg-[#04293A] text-white outline-none"
-            required
-          />
-        </div>
+          {/* Password */}
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Password</label>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg bg-[#082032] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#217379]"
+            />
+          </div>
 
-        <div className="mb-6">
-          <label className="block text-white mb-2">Senha</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-2 rounded bg-[#04293A] text-white outline-none"
-            required
-          />
-        </div>
+          {/* Forgot password */}
+          <p className="text-right text-sm text-gray-400 hover:text-[#60d4ea] cursor-pointer">
+            Forgot password?
+          </p>
 
-        <button
-          type="submit"
-          className="w-full bg-[#217379] hover:bg-[#60d4ea] text-white font-bold py-2 px-4 rounded transition-colors"
-        >
-          Entrar
-        </button>
-      </form>
+          {/* Button */}
+          <button
+            type="submit"
+            className="w-full py-3 mt-2 rounded-lg font-semibold text-white bg-gradient-to-r from-[#217379] to-[#1a3c7d] hover:opacity-90 transition"
+          >
+            LOGIN
+          </button>
+        </form>
+      </div>
     </div>
   );
 };
