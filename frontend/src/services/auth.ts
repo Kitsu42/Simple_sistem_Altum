@@ -1,6 +1,12 @@
 // src/services/auth.ts
+import axios from "axios";
 
-const API_URL = "http://localhost:8000"; // ajuste se necessário
+const API_URL = "http://localhost:8000"; // ajuste se o backend rodar em outra porta
+
+interface LoginResponse {
+  access_token: string;
+  token_type: string;
+}
 
 export const login = async (username: string, password: string) => {
   const response = await fetch(`${API_URL}/login`, {

@@ -1,60 +1,64 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { login } from "../services/auth";
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login:", { email, password });
+    setError("");
+
+    try {
+      const response = await login(username, password);
+
+      // salva token no navegador
+      localStorage.setItem("token", response.access_token);
+
+      // redireciona para o Dashboard
+      navigate("/dashboard");
+    } catch (err) {
+      setError("Usuário ou senha inválidos");
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#082032] to-[#1a1a40]">
-      <div className="bg-[#1a1a40] w-full max-w-md rounded-2xl shadow-2xl p-8">
-        <h2 className="text-3xl font-bold text-center text-white mb-2">
-          LOGIN
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-gray-900 via-black to-gray-800">
+      <div className="bg-[#1c1c1c] p-8 rounded-2xl shadow-2xl w-full max-w-md">
+        <h2 className="text-3xl font-bold text-white text-center mb-6">
+          Simple Sistem Altum
         </h2>
-        <p className="text-gray-400 text-center mb-8">
-          Please enter your login and password!
+        <p className="text-gray-400 text-center mb-6">
+          Faça login para continuar
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Email */}
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">Email</label>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-[#082032] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#60d4ea]"
-            />
-          </div>
+          <input
+            type="text"
+            placeholder="Usuário"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
 
-          {/* Password */}
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">Password</label>
-            <input
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-[#082032] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#217379]"
-            />
-          </div>
+          <input
+            type="password"
+            placeholder="Senha"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
 
-          {/* Forgot password */}
-          <p className="text-right text-sm text-gray-400 hover:text-[#60d4ea] cursor-pointer">
-            Forgot password?
-          </p>
+          {error && <p className="text-red-500 text-center">{error}</p>}
 
-          {/* Button */}
           <button
             type="submit"
-            className="w-full py-3 mt-2 rounded-lg font-semibold text-white bg-gradient-to-r from-[#217379] to-[#1a3c7d] hover:opacity-90 transition"
+            className="w-full py-3 mt-4 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-semibold transition duration-300"
           >
-            LOGIN
+            Entrar
           </button>
         </form>
       </div>
